@@ -58,6 +58,7 @@ def view_history_menu():
                 selected = logs[idx]
                 print("\n" + "="*35)
                 print(f"DETAILS: {selected['Project'].upper()}")
+                print(f"Date Created: {selected.get('Date', 'N/A')}")
                 print("="*35)
                 print(f"Base + Contingency: ${selected.get('Total_Ex_GST', 0):,.2f}")
                 print(f"GST (10%):          ${selected.get('GST', 0):,.2f}")
@@ -67,4 +68,37 @@ def view_history_menu():
                 print("2. Return to list")
                 
                 action = input("\nChoice: ")
-                if action == '
+                if action == '1':
+                    confirm = input(f"Delete '{selected['Project']}'? (y/n): ")
+                    if confirm.lower() == 'y':
+                        # Ask STORAGE to handle the deletion
+                        storage.delete_project_by_index(idx)
+                        print("\n>> Project Deleted.")
+                        input("Press Enter...")
+                        break 
+            else:
+                print("\n!! Invalid selection.")
+        except ValueError:
+            print("\n!! Please enter a valid number.")
+
+def main_menu():
+    while True:
+        print("\n" + "="*40)
+        print("   PMTool: MAIN MENU (Modular)   ")
+        print("="*40)
+        print("1. Create New Estimate")
+        print("2. Manage History")
+        print("3. EXIT")
+        
+        choice = input("\nSelect: ")
+
+        if choice == '1':
+            create_estimate()
+        elif choice == '2':
+            view_history_menu()
+        elif choice == '3':
+            print("\nShutting down... Goodbye!")
+            break
+
+if __name__ == "__main__":
+    main_menu()
