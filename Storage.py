@@ -1,29 +1,45 @@
 import json
 import os
-from datetime import datetime # Standard library for time
+from datetime import datetime
 
-# --- PMTool: STORAGE MODULE ---
 DB_FILE = 'projectBudgetDB.json'
 
 def save_to_db(name, scope, labor, materials, total_ex, gst, total_inc):
-    from datetime import datetime
     now = datetime.now()
-    
     budget_data = {
         "Timestamp": now.strftime("%d-%m-%Y %H:%M"),
         "Project": name,
         "Scope": scope,
-        "Labor": labor,        # The list of role/hours/rate
-        "Materials": materials, # The list of name/price
+        "Labor": labor,
+        "Materials": materials,
         "Total_Ex_GST": total_ex,
         "GST": gst,
         "Total_Inc_GST": total_inc
     }
-    
-    with open('projectBudgetDB.json', 'a') as f:
-        import json
+    with open(DB_FILE, 'a') as f:
         json.dump(budget_data, f)
         f.write('\n')
+
+def get_all_history():
+    history = []
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, 'r') as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        history.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+    return history
+
+def delete_project_by_index(index):
+    history = get_all_history()
+    if 0 <= index < len(history):
+        history.pop(index)
+        with open(DB_FILE, 'w') as f:
+            for entry in history:
+                json.dump(entry, f)
+                f.write('\n')
 
 
 def get_all_history():
