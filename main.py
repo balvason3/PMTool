@@ -1,6 +1,6 @@
 import engine
 import storage
-import labour  # Import your new file
+import labour  
 
 def get_labor_inputs():
     items = []
@@ -11,7 +11,8 @@ def get_labor_inputs():
         try:
             hrs = float(input(f"  Hours for {role}: "))
             rate = float(input(f"  Rate for {role} ($): "))
-            items.append({"role": role, "hours": hrs, "rate": rate})
+            # Initializing with actual_hours: 0 for new projects
+            items.append({"role": role, "estimated_hours": hrs, "actual_hours": 0.0, "rate": rate})
         except ValueError: print("  !! Invalid number.")
     return items
 
@@ -45,7 +46,6 @@ def view_history_menu():
             input("Press Enter to return...")
             break
         
-        # --- RESTORED PROJECT LIST ---
         print("\n" + "-"*45)
         print(f"{'#':<3} | {'Project Name':<20} | {'Total (Inc)'}")
         print("-"*45)
@@ -55,47 +55,95 @@ def view_history_menu():
             print(f"{i:<3} | {entry['Project']:<20} | ${total_inc:,.2f}")
         
         print("-"*45)
-        # -----------------------------
 
         choice = input("Select # for details (0 to exit): ")
-        if choice == '0': 
-            break
+        if choice == '0': break
         
         try:
             idx = int(choice) - 1
             if 0 <= idx < len(logs):
                 selected = logs[idx]
-                print("\n" + "="*60)
+                print("\n" + "="*75)
                 print(f"PROJECT: {selected['Project'].upper()} | DATE: {selected.get('Timestamp', 'N/A')}")
                 print(f"SCOPE: {selected.get('Scope', 'N/A')}")
-                print("-" * 60)
+                print("-" * 75)
                 
-                # Show Labor
-                print(f"{'Role':<15} | {'Hrs':<5} | {'Rate':<10} | {'Subtotal':>12}")
-                for l in selected.get('Labor', []):
-                    sub = l['hours'] * l['rate']
-                    print(f"{l['role']:<15} | {l['hours']:<5} | ${l['rate']:<9,.2f} | ${sub:11,.2f}")
+                # --- DETAILED LABOR & FINANCIAL TRACKER ---
+                print(f"{'Role':<12} | {'Orig Hr':>7} | {'Used':>5} | {'Rem Hr':>6} | {'Rem $':>12} | {'Var $':>10}")
+                print("-" * 75)
+                
+                labor_data = selected.get('Labor', [])
+                total_orig_val = 0
+                total_rem_val = 0
+                total_var_val = 0
+
+                for l in labor_data:
+                    orig = l.get('estimated_hours', l.get('hours', 0))
+                    used = l.get('actual_hours', 0)
+                    rate = l.get('rate', 0)
+                    
+                    rem_hrs = orig - used
+                    # Financials
+                    rem_cost = max(0, rem_hrs * rate)
+                    var_cost = (used - orig) * rate if used > orig else 0.0
+                    
+                    total_orig_val += (orig * rate)
+                    total_rem_val += rem_cost
+                    total_var_val += var_cost
+
+                    print(f"{l['role']:<12} | {orig:>7.1f} | {used:>5.1f} | {rem_hrs:>6.1f} | ${rem_cost:>11,.2f} | ${var_cost:>9,.2f}")
+                
+                print("-" * 75)
+                print(f"{'LABOR TOTALS':<12} | {'':>7} | {'':>5} | {'':>6} | ${total_rem_val:>11,.2f} | ${total_var_val:>9,.2f}")
                 
                 # Show Materials
-                print("\n" + f"{'Material Item':<43} | {'Cost':>12}")
-                print("-" * 60)
+                print("\n" + f"{'Material Item':<58} | {'Cost':>12}")
+                print("-" * 75)
                 for m in selected.get('Materials', []):
-                    print(f"{m['name']:<43} | ${m['price']:11,.2f}")
+                    print(f"{m['name']:<58} | ${m['price']:11,.2f}")
                 
-                print("=" * 60)
-                print(f"GRAND TOTAL (Inc GST): ${selected.get('Total_Inc_GST', 0):,.2f}")
-                print("=" * 60)
+                print("=" * 75)
+                print(f"{'Original Labor Budget:':<58} | ${total_orig_val:>11,.2f}")
+                print(f"{'Remaining Labor Budget:':<58} | ${total_rem_val:>11,.2f}")
+                if total_var_val > 0:
+                    print(f"{'LABOR OVERRUN (LOSS):':<58} | ${total_var_val:>11,.2f}")
+                print("-" * 75)
+                print(f"{'GRAND TOTAL (Inc GST):':<58} | ${selected.get('Total_Inc_GST', 0):11,.2f}")
+                print("=" * 75)
                 
-                print("\n1. Delete | 2. Back")
+                print("\n1. Delete | 2. Back | 3. Log Hours")
                 action = input("Choice: ")
                 if action == '1':
                     if input("Confirm Delete? (y/n): ").lower() == 'y':
                         storage.delete_project_by_index(idx)
-                        # Don't break here, so it refreshes the list
+                        break
+                elif action == '3':
+                    log_hours_ui(selected, idx)
             else:
                 print("!! Invalid Selection.")
         except ValueError:
             print("!! Please enter a number.")
+
+def log_hours_ui(selected_project, index):
+    print(f"\n--- LOG HOURS: {selected_project['Project']} ---")
+    labor = selected_project.get('Labor', [])
+    
+    for i, l in enumerate(labor):
+        print(f"{i+1}. {l['role']} (Current: {l.get('actual_hours', 0)} hrs)")
+    
+    choice = input("\nSelect Role # to log hours (0 to cancel): ")
+    if choice.isdigit() and int(choice) > 0:
+        idx = int(choice) - 1
+        if idx < len(labor):
+            try:
+                added = float(input(f"Add how many hours to {labor[idx]['role']}? "))
+                current = labor[idx].get('actual_hours', 0)
+                labor[idx]['actual_hours'] = current + added
+                
+                storage.update_project(index, selected_project)
+                print(">> Hours Logged Successfully.")
+            except ValueError:
+                print("!! Invalid number.")
 
 def main_menu():
     while True:

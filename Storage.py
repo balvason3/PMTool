@@ -70,3 +70,15 @@ def delete_project_by_index(index):
         overwrite_db(history)
         return removed_item['Project']
     return None
+    
+def update_project(index, updated_data):
+    """Overwrites a specific project in the JSON file."""
+    history = get_all_history()
+    if 0 <= index < len(history):
+        history[index] = updated_data
+        # Rewrite the file with the updated list
+        with open(DB_FILE, 'w') as f:
+            for entry in history:
+                import json
+                json.dump(entry, f)
+                f.write('\n')

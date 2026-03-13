@@ -10,29 +10,29 @@ def get_labour_inputs():
         try:
             hrs = float(input(f"  Estimated Hours for {role}: "))
             rate = float(input(f"  Hourly Rate for {role} ($): "))
+            # We initialize actual_hours at 0.0 for the POC tracker
             items.append({
                 "role": role, 
                 "estimated_hours": hrs, 
-                "actual_hours": 0.0, # Initial baseline starts at 0
+                "actual_hours": 0.0, 
                 "rate": rate
             })
         except ValueError:
             print("  !! Invalid number. Please retry.")
     return items
 
-def calculate_labour_total(labour_list):
-    """Calculates the dollar value of the baseline estimate."""
-    return sum(l['estimated_hours'] * l['rate'] for l in labour_list)
-
-def get_burn_report(labour_list):
-    """Calculates variance between estimate and actuals."""
-    report = []
-    for l in labour_list:
-        remaining = l['estimated_hours'] - l['actual_hours']
-        status = "On Track" if remaining >= 0 else "OVER BUDGET"
-        report.append({
-            "role": l['role'],
-            "remaining": remaining,
-            "status": status
-        })
-    return report
+def log_actual_hours(project_data):
+    """Business logic for updating the 'Actuals' without touching the Baseline."""
+    print(f"\n--- LOGGING PROGRESS: {project_data['Project']} ---")
+    labour_list = project_data.get('Labor', [])
+    
+    for i, l in enumerate(labour_list):
+        print(f"{i+1}. {l['role']} (Spent: {l['actual_hours']}/{l['estimated_hours']} hrs)")
+    
+    choice = input("\nSelect role # to log hours (or '0' to cancel): ")
+    if choice.isdigit() and int(choice) > 0:
+        idx = int(choice) - 1
+        added = float(input(f"Hours to add for {labour_list[idx]['role']}: "))
+        labour_list[idx]['actual_hours'] += added
+        return labour_list
+    return None
