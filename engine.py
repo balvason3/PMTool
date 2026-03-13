@@ -14,17 +14,23 @@ def calculate_gst(amount):
         "total_inc_gst": amount + gst_amount
     }
 
-def calculate_totals(labor_hours, hourly_rate, materials_cost, contingency_rate=0.15):
+    def calculate_totals(labor_hours, hourly_rate, items_list, contingency_rate=0.15):
     """
-    Calculates project subtotal and contingency buffer.
-    All calculations are Ex-GST.
+    items_list should be a list of dictionaries: 
+    [{'name': 'Timber', 'price': 100}, {'name': 'Glue', 'price': 20}]
     """
-    subtotal_ex_gst = (labor_hours * hourly_rate) + materials_cost
-    contingency_ex_gst = subtotal_ex_gst * contingency_rate
-    total_ex_gst = subtotal_ex_gst + contingency_ex_gst
+    # Sum up all materials from the list
+    materials_subtotal = sum(item['price'] for item in items_list)
+    
+    labor_subtotal = labor_hours * hourly_rate
+    base_total = labor_subtotal + materials_subtotal
+    
+    contingency = base_total * contingency_rate
+    total_ex_gst = base_total + contingency
     
     return {
-        "total_ex": total_ex_gst,
-        "contingency": contingency_ex_gst,
-        "base_subtotal": subtotal_ex_gst
+        "labor_total": labor_total,
+        "materials_total": materials_subtotal,
+        "contingency": contingency,
+        "total_ex": total_ex_gst
     }
