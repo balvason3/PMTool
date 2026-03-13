@@ -5,25 +5,25 @@ from datetime import datetime # Standard library for time
 # --- PMTool: STORAGE MODULE ---
 DB_FILE = 'projectBudgetDB.json'
 
-def save_to_db(project_name, total_ex, gst, total_inc):
-    # Saves a project record with an Australian timestamp.
-    
-    # Generate the timestamp
+def save_to_db(name, scope, labor, materials, total_ex, gst, total_inc):
+    from datetime import datetime
     now = datetime.now()
-    date_string = now.strftime("%d-%m-%Y %H:%M") # Format: DD-MM-YYYY HH:MM
-
+    
     budget_data = {
-        "Date": date_string,
-        "Project": project_name,
+        "Timestamp": now.strftime("%d-%m-%Y %H:%M"),
+        "Project": name,
+        "Scope": scope,
+        "Labor": labor,        # The list of role/hours/rate
+        "Materials": materials, # The list of name/price
         "Total_Ex_GST": total_ex,
         "GST": gst,
         "Total_Inc_GST": total_inc
     }
     
-    with open(DB_FILE, 'a') as f:
+    with open('projectBudgetDB.json', 'a') as f:
+        import json
         json.dump(budget_data, f)
         f.write('\n')
-
 
 
 def get_all_history():
