@@ -4,7 +4,7 @@ import os
 # --- PMTool: STORAGE MODULE ---
 # This handles the "Database" (JSON file) operations.
 
-DB_FILE = 'budgets.json'
+DB_FILE = 'projectBudgetDB.json'
 
 def save_to_db(project_name, total_ex, gst, total_inc):
     """Saves a single project record to the JSON file."""
