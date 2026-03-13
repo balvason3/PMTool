@@ -1,20 +1,12 @@
 import json
 import os
-
-# --- PMTool: STORAGE MODULE ---
-# This handles the "Database" (JSON file) operations.
-
-DB_FILE = 'projectBudgetDB.json'
-
-import json
-import os
 from datetime import datetime # Standard library for time
 
 # --- PMTool: STORAGE MODULE ---
 DB_FILE = 'projectBudgetDB.json'
 
 def save_to_db(project_name, total_ex, gst, total_inc):
-    """Saves a project record with an Australian timestamp."""
+    # Saves a project record with an Australian timestamp.
     
     # Generate the timestamp
     now = datetime.now()
@@ -32,10 +24,10 @@ def save_to_db(project_name, total_ex, gst, total_inc):
         json.dump(budget_data, f)
         f.write('\n')
 
-# ... (Keep get_all_history and delete functions as they are)
+
 
 def get_all_history():
-    """Reads all projects from the file and returns them as a list of dictionaries."""
+    # Reads all projects from the file and returns them as a list of dictionaries.
     history = []
     if os.path.exists(DB_FILE):
         with open(DB_FILE, 'r') as f:
