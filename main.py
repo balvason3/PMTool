@@ -22,26 +22,61 @@ def view_history_menu():
             input("Press Enter to return...")
             break
         
-        print("\n" + "-"*45)
-        print(f"{'#':<3} | {'Project Name':<20} | {'Total (Inc)'}")
-        print("-"*45)
+        # --- PROJECT LIST ---
+        print("\n" + "-"*55)
+        print(f"{'Job No.':<10} | {'Project Name':<25} | {'Total (Inc)'}")
+        print("-"*55)
         
-        for i, entry in enumerate(logs, 1):
+        for entry in logs:
+            # Safely handle older projects that don't have an ID yet
+            jid = entry.get('Project_ID', 'N/A')
             total_inc = entry.get('Total_Inc_GST', 0)
-            print(f"{i:<3} | {entry['Project']:<20} | ${total_inc:,.2f}")
+            print(f"{jid:<10} | {entry['Project']:<25} | ${total_inc:,.2f}")
         
-        print("-"*45)
+        print("-"*55)
 
-        choice = input("Select # for details (0 to exit): ")
-        if choice == '0': break
+        # --- SELECTION & SEARCH LOGIC ---
+        choice = input("Enter Job No (e.g., 1000), 'S' to Search, or '0' to exit: ").strip().upper()
         
-        try:
-            idx = int(choice) - 1
-            if 0 <= idx < len(logs):
-                selected = logs[idx]
+        if choice == '0': 
+            break
+            
+        elif choice == 'S':
+            term = input("Enter search term (Name or Job No): ").strip().lower()
+            print("\n--- SEARCH RESULTS ---")
+            results = [log for log in logs if term in log.get('Project', '').lower() or term in log.get('Project_ID', '').lower()]
+            
+            if results:
+                for entry in results:
+                    jid = entry.get('Project_ID', 'N/A')
+                    print(f"{jid:<10} | {entry['Project']:<25} | ${entry.get('Total_Inc_GST', 0):,.2f}")
+            else:
+                print("!! No matches found.")
+            input("\nPress Enter to return to list...")
+            continue # Loop back to the top of the menu
+            
+        else:
+            # --- VIEW DETAILS LOGIC ---
+            # Forgiving input: Allows user to type "1000" instead of "JN-1000"
+            if not choice.startswith("JN-") and choice.isdigit():
+                search_id = f"JN-{choice}"
+            else:
+                search_id = choice
+                
+            # Find the specific project and its actual list index
+            selected = None
+            idx = -1
+            for i, entry in enumerate(logs):
+                if entry.get('Project_ID') == search_id:
+                    selected = entry
+                    idx = i
+                    break
+                    
+            if selected:
                 print("\n" + "="*75)
+                print(f"JOB NO:  {selected.get('Project_ID', 'N/A')}")
                 print(f"PROJECT: {selected['Project'].upper()} | DATE: {selected.get('Timestamp', 'N/A')}")
-                print(f"SCOPE: {selected.get('Scope', 'N/A')}")
+                print(f"SCOPE:   {selected.get('Scope', 'N/A')}")
                 print("-" * 75)
                 
                 # --- DETAILED LABOR TRACKER ---
@@ -114,15 +149,13 @@ def view_history_menu():
                 if action == '1':
                     if input("Confirm Delete? (y/n): ").lower() == 'y':
                         storage.delete_project_by_index(idx)
-                        break
+                        # Break not needed; while loop will refresh the list
                 elif action == '3':
                     log_hours_ui(selected, idx)
                 elif action == '4':
                     log_materials_ui(selected, idx)
             else:
-                print("!! Invalid Selection.")
-        except ValueError:
-            print("!! Please enter a number.")
+                print("!! Job Number not found. Please try again.")
 
 def log_hours_ui(selected_project, index):
     print(f"\n--- LOG HOURS: {selected_project['Project']} ---")
