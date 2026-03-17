@@ -7,6 +7,7 @@ def get_labour_inputs():
     while True:
         role = input("Role (PM/Trade/Admin) or 'done': ").strip().title()
         if role.lower() == 'done': break
+        if not role: continue
         try:
             hrs = float(input(f"  Estimated Hours for {role}: "))
             rate = float(input(f"  Hourly Rate for {role} ($): "))

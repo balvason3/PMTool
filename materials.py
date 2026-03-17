@@ -7,6 +7,7 @@ def get_material_inputs():
     while True:
         name = input("Material Name: ").strip().title()
         if name.lower() == 'done': break
+        if not name: continue
         try:
             est_cost = float(input(f"  Estimated Cost for {name} ($): "))
             items.append({"name": name, "estimated_cost": est_cost, "actual_cost": 0.0})
