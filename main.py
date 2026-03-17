@@ -2,7 +2,7 @@ import engine
 import storage
 import labour  
 import materials 
-import reports # Import our new display module
+import reports 
 
 def create_estimate():
     name = input("Project Name: ")
@@ -15,6 +15,9 @@ def create_estimate():
     print("\n>> Saved.")
 
 def view_history_menu():
+    show_mode = "Active" # Tracks which 'tab' we are looking at
+    search_results = []
+
     while True:
         logs = storage.get_all_history()
         if not logs:
@@ -22,35 +25,61 @@ def view_history_menu():
             input("Press Enter to return...")
             break
         
-        print("\n" + "-"*55)
-        print(f"{'Job No.':<10} | {'Project Name':<25} | {'Total (Inc)'}")
-        print("-"*55)
-        for entry in logs:
-            jid = entry.get('Project_ID', 'N/A')
-            print(f"{jid:<10} | {entry['Project']:<25} | ${entry.get('Total_Inc_GST', 0):,.2f}")
-        print("-"*55)
+        # --- DYNAMIC LIST HEADER ---
+        print("\n" + "-"*65)
+        if show_mode == "Active":
+            print(f"{'Job No.':<10} | {'ACTIVE PROJECTS':<25} | {'Total (Inc)':<15} | {'Status'}")
+        elif show_mode == "Archived":
+            print(f"{'Job No.':<10} | {'ARCHIVED PROJECTS':<25} | {'Total (Inc)':<15} | {'Status'}")
+        else:
+            print(f"{'Job No.':<10} | {'SEARCH RESULTS':<25} | {'Total (Inc)':<15} | {'Status'}")
+        print("-" * 65)
 
-        choice = input("Enter Job No (e.g., 1000), 'S' to Search, or '0' to exit: ").strip().upper()
+        # --- FILTER THE LIST ---
+        if show_mode == "Active":
+            display_list = [log for log in logs if log.get("Status", "Active") == "Active"]
+        elif show_mode == "Archived":
+            display_list = [log for log in logs if log.get("Status", "Active") == "Archived"]
+        elif show_mode == "Search":
+            display_list = search_results
+
+        # --- PRINT THE LIST ---
+        for entry in display_list:
+            jid = entry.get('Project_ID', 'N/A')
+            print(f"{jid:<10} | {entry['Project'][:25]:<25} | ${entry.get('Total_Inc_GST', 0):<14,.2f} | {entry.get('Status', 'Active')}")
+        print("-" * 65)
+
+        # --- DYNAMIC PROMPT ---
+        if show_mode == "Active":
+            choice = input("Enter Job No, 'S' for Search, 'A' for Archives, or '0' to exit: ").strip().upper()
+        else:
+            choice = input("Enter Job No to view, or '0' to return to Active list: ").strip().upper()
         
+        # --- HANDLE NAVIGATION ---
         if choice == '0': 
-            break
-        elif choice == 'S':
-            term = input("Enter search term (Name or Job No): ").strip().lower()
-            print("\n--- SEARCH RESULTS ---")
-            results = [log for log in logs if term in log.get('Project', '').lower() or term in log.get('Project_ID', '').lower()]
-            if results:
-                for entry in results:
-                    jid = entry.get('Project_ID', 'N/A')
-                    print(f"{jid:<10} | {entry['Project']:<25} | ${entry.get('Total_Inc_GST', 0):,.2f}")
+            if show_mode != "Active":
+                show_mode = "Active" # Go back to main tab
+                continue
             else:
-                print("!! No matches found.")
-            input("\nPress Enter to return to list...")
+                break # Exit history menu completely
+                
+        elif choice == 'S' and show_mode == "Active":
+            term = input("Enter search term: ").strip().lower()
+            search_results = [log for log in logs if term in log.get('Project', '').lower() or term in log.get('Project_ID', '').lower()]
+            show_mode = "Search"
+            continue
+            
+        elif choice == 'A' and show_mode == "Active":
+            show_mode = "Archived"
             continue
             
         else:
+            # --- VIEW SELECTED PROJECT ---
             search_id = f"JN-{choice}" if (not choice.startswith("JN-") and choice.isdigit()) else choice
             selected = None
             idx = -1
+            
+            # Find the true index in the main logs list
             for i, entry in enumerate(logs):
                 if entry.get('Project_ID') == search_id:
                     selected = entry
@@ -58,19 +87,34 @@ def view_history_menu():
                     break
                     
             if selected:
-                # 1. CALL THE REPORT DISPLAY
+                # 1. Print the Dashboard
                 reports.print_project_dashboard(selected)
                 
-                # 2. HANDLE THE SUB-MENU ROUTING
-                print("\n1. Delete | 2. Back | 3. Log Labor | 4. Log Material Costs")
-                action = input("Choice: ")
-                if action == '1':
-                    if input("Confirm Delete? (y/n): ").lower() == 'y':
-                        storage.delete_project_by_index(idx)
-                elif action == '3':
-                    labour.log_hours_ui(selected, idx)
-                elif action == '4':
-                    materials.log_materials_ui(selected, idx)
+                # 2. Check the Status for Read-Only Lock
+                is_archived = selected.get('Status', 'Active') == 'Archived'
+                
+                if is_archived:
+                    print("\n*** PROJECT IS ARCHIVED (READ-ONLY) ***")
+                    print("1. Restore (Unarchive) | 2. Back")
+                    action = input("Choice: ")
+                    if action == '1':
+                        if input("Restore project to Active? (y/n): ").lower() == 'y':
+                            storage.restore_project_by_index(idx)
+                            print(">> Project Restored.")
+                            show_mode = "Active" # Kick them back to the active list to see it
+                else:
+                    print(f"\nSTATUS: {selected.get('Status', 'Active').upper()}")
+                    print("1. Archive Project | 2. Back | 3. Log Labor | 4. Log Material Costs")
+                    action = input("Choice: ")
+                    
+                    if action == '1':
+                        if input("Confirm Archive? (y/n): ").lower() == 'y':
+                            storage.archive_project_by_index(idx)
+                            print(">> Project Archived.")
+                    elif action == '3':
+                        labour.log_hours_ui(selected, idx)
+                    elif action == '4':
+                        materials.log_materials_ui(selected, idx)
             else:
                 print("!! Job Number not found. Please try again.")
 
