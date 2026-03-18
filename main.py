@@ -1,20 +1,28 @@
 import engine
 import storage
-import labour  
-import materials 
-import reports 
-import status 
+import labour
+import materials
+import reports
+import status
+import metadata
+import notes
+import settings
 
 def create_estimate():
     name = input("Project Name: ")
     scope = input("Scope: ")
+    meta = metadata.get_project_metadata() 
+    
+    # 1. Get labor first
     labor = labour.get_labour_inputs()
-    mats = materials.get_material_inputs()
+    # 2. Pass labor INTO materials so assemblies can append to it!
+    mats = materials.get_material_inputs(labor) 
+    
     base = engine.calculate_totals(labor, mats)
     tax = engine.calculate_gst(base['total_ex'])
-    storage.save_to_db(name, scope, labor, mats, base['total_ex'], tax['gst_value'], tax['total_inc_gst'])
     
-    # Force the new project to be a "Draft"
+    storage.save_to_db(name, scope, meta['client'], meta['target_date'], labor, mats, base['total_ex'], tax['gst_value'], tax['total_inc_gst'])
+    
     logs = storage.get_all_history()
     logs[-1]["Status"] = "Draft"
     storage.overwrite_db(logs)
@@ -80,7 +88,11 @@ def view_history_menu():
             continue
             
         else:
-            search_id = f"JN-{choice}" if (not choice.startswith("JN-") and choice.isdigit()) else choice
+            # --- UPDATED: Dynamic Prefix Search ---
+            config = settings.load_settings()
+            prefix = config['id_prefix']
+            search_id = f"{prefix}{choice}" if (not choice.startswith(prefix) and choice.isdigit()) else choice
+            
             selected = None
             idx = -1
             
@@ -111,7 +123,8 @@ def view_history_menu():
                             break # Exits the project and goes back to the list
                     else:
                         print(f"\nSTATUS: {selected.get('Status', 'Active').upper()}")
-                        print("1. Change Status | 2. Back | 3. Log Labor | 4. Log Material Costs")
+                        # UPDATED MENU: Added Option 5
+                        print("1. Change Status | 2. Back | 3. Log Labor | 4. Log Material Costs | 5. Add Note")
                         action = input("Choice: ")
                         
                         if action == '1':
@@ -122,21 +135,30 @@ def view_history_menu():
                             labour.log_hours_ui(selected, idx)
                         elif action == '4':
                             materials.log_materials_ui(selected, idx)
+                        elif action == '5':
+                            notes.add_note_ui(selected, idx)
             else:
                 print("!! Job Number not found. Please try again.")
 
 def main_menu():
     while True:
         print("\n" + "="*40)
-        print("   PMTool: MAIN MENU (Modular)   ")
+        print("   PMTool: MAIN MENU   ")
         print("="*40)
         print("1. Create New Estimate")
         print("2. Manage History")
-        print("3. EXIT")
+        print("3. Global Settings") 
+        print("4. EXIT")            
+        
         choice = input("\nSelect: ")
-        if choice == '1': create_estimate()
-        elif choice == '2': view_history_menu()
-        elif choice == '3':
+        
+        if choice == '1': 
+            create_estimate()
+        elif choice == '2': 
+            view_history_menu()
+        elif choice == '3': 
+            settings.settings_menu_ui() 
+        elif choice == '4':
             print("\nShutting down... Goodbye!")
             break
 

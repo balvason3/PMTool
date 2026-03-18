@@ -1,12 +1,15 @@
 import json
 import os
 from datetime import datetime
+import settings
 
 DB_FILE = 'projectBudgetDB.json'
-ID_PREFIX = "JN-"
-START_NUMBER = 10000
 
 def get_all_history():
+    config = settings.load_settings()
+    id_prefix = config['id_prefix']
+    start_number = config['start_number']
+    
     history = []
     needs_save = False
     
@@ -19,12 +22,12 @@ def get_all_history():
                     except json.JSONDecodeError:
                         continue
 
-    highest_id = START_NUMBER - 1
+    highest_id = start_number - 1
     for entry in history:
         pid = entry.get("Project_ID", "")
-        if pid.startswith(ID_PREFIX):
+        if pid.startswith(id_prefix):
             try:
-                num = int(pid.replace(ID_PREFIX, ""))
+                num = int(pid.replace(id_prefix, ""))
                 if num > highest_id:
                     highest_id = num
             except ValueError:
@@ -32,9 +35,9 @@ def get_all_history():
 
     for entry in history:
         pid = entry.get("Project_ID", "")
-        if not pid or pid == "N/A" or pid == "JN-0":
+        if not pid or pid == "N/A" or pid == f"{id_prefix}0":
             highest_id += 1
-            entry["Project_ID"] = f"{ID_PREFIX}{highest_id}"
+            entry["Project_ID"] = f"{id_prefix}{highest_id}"
             needs_save = True
             
         # NEW: Auto-migrate old projects to have an Active status
@@ -48,16 +51,20 @@ def get_all_history():
     return history
 
 def generate_next_id(history):
-    if not history: return f"{ID_PREFIX}{START_NUMBER}"
-    highest = START_NUMBER - 1
+    config = settings.load_settings()
+    id_prefix = config['id_prefix']
+    start_number = config['start_number']
+    
+    if not history: return f"{id_prefix}{start_number}"
+    highest = start_number - 1
     for entry in history:
         pid = entry.get("Project_ID", "")
-        if pid.startswith(ID_PREFIX):
+        if pid.startswith(id_prefix):
             try:
-                num = int(pid.replace(ID_PREFIX, ""))
+                num = int(pid.replace(id_prefix, ""))
                 if num > highest: highest = num
             except ValueError: continue
-    return f"{ID_PREFIX}{highest + 1}"
+    return f"{id_prefix}{highest + 1}"
 
 def overwrite_db(history_list):
     with open(DB_FILE, 'w') as f:
@@ -65,15 +72,17 @@ def overwrite_db(history_list):
             json.dump(entry, f)
             f.write('\n')
 
-def save_to_db(name, scope, labor, materials, total_ex, gst, total_inc):
+def save_to_db(name, scope, client, target_date, labor, materials, total_ex, gst, total_inc):
     history = get_all_history()
     project_id = generate_next_id(history)
     now = datetime.now()
     budget_data = {
         "Project_ID": project_id,
-        "Status": "Active", # NEW: Default status
+        "Status": "Active", 
         "Timestamp": now.strftime("%d-%m-%Y %H:%M"),
         "Project": name,
+        "Client": client,             # NEW
+        "Target_Date": target_date,   # NEW
         "Scope": scope,
         "Labor": labor,
         "Materials": materials,
