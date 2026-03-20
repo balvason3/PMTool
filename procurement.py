@@ -1,6 +1,7 @@
 # --- PMTool: PROCUREMENT MODULE ---
 import storage
 import settings
+import supplier
 
 def manage_suppliers(config):
     """Handles adding and viewing the global supplier list."""
@@ -25,16 +26,17 @@ def manage_suppliers(config):
 
 def assign_supplier_and_tag(mats, index, config):
     """Tags an item as Ready to Order and assigns a supplier."""
-    suppliers = config.get('suppliers', [])
+    suppliers = supplier.load_suppliers() # <-- Pulls from the new JSON
+    
     print("\n--- SELECT SUPPLIER ---")
     for i, sup in enumerate(suppliers):
-         print(f"{i+1}. {sup}")
+         print(f"{i+1}. {sup['name']}") # <-- References the 'name' key
     print("0. Leave as TBA")
     
     sup_choice = input("Select Supplier #: ").strip()
     supplier_name = "TBA"
     if sup_choice.isdigit() and 0 < int(sup_choice) <= len(suppliers):
-        supplier_name = suppliers[int(sup_choice)-1]
+        supplier_name = suppliers[int(sup_choice)-1]['name']
         
     mats[index]['supplier'] = supplier_name
     mats[index]['procurement_status'] = 'Ready to Order'
@@ -165,7 +167,7 @@ def procurement_main_menu():
         print("="*40)
         print("1. Project Materials (Tag & Receive)")
         print("2. 'Ready to Order' Master List")
-        print("3. Manage Supplier Database")
+        print("3. Manage Supplier Database") # <-- This stays the same
         print("0. Back to Main Menu")
         
         choice = input("\nSelect: ").strip()
@@ -175,6 +177,6 @@ def procurement_main_menu():
         elif choice == '2':
             view_ready_to_order_list()
         elif choice == '3':
-            manage_suppliers(config)
+            supplier.supplier_menu_ui() # <-- Routs to the new file!
         elif choice == '0':
             break
