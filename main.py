@@ -7,6 +7,7 @@ import status
 import metadata
 import notes
 import settings
+import procurement
 
 def create_estimate():
     name = input("Project Name: ")
@@ -147,18 +148,21 @@ def main_menu():
         print("="*40)
         print("1. Create New Estimate")
         print("2. Manage History")
-        print("3. Global Settings") 
-        print("4. EXIT")            
+        print("3. Procurement Module")  # <-- NEW OPTION
+        print("4. Global Settings")     # <-- Shifted to #4
+        print("5. EXIT")                # <-- Shifted to #5
         
-        choice = input("\nSelect: ")
+        choice = input("\nSelect: ").strip()
         
         if choice == '1': 
             create_estimate()
         elif choice == '2': 
             view_history_menu()
-        elif choice == '3': 
+        elif choice == '3':
+            procurement.procurement_main_menu()  # <-- CALLS THE NEW MENU
+        elif choice == '4': 
             settings.settings_menu_ui() 
-        elif choice == '4':
+        elif choice == '5':
             print("\nShutting down... Goodbye!")
             break
 

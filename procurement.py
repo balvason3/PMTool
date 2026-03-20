@@ -2,41 +2,30 @@
 import storage
 import settings
 import supplier
+import engine
 
-def manage_suppliers(config):
-    """Handles adding and viewing the global supplier list."""
-    while True:
-        print("\n--- SUPPLIER LIST ---")
-        suppliers = config.get('suppliers', [])
-        for i, sup in enumerate(suppliers):
-            print(f"{i+1}. {sup}")
-        
-        print("\nN. Add New Supplier")
-        print("0. Back")
-        
-        choice = input("Select: ").strip().upper()
-        if choice == '0':
-            break
-        elif choice == 'N':
-            new_sup = input("Enter new supplier name: ").strip()
-            if new_sup:
-                config.setdefault('suppliers', []).append(new_sup)
-                settings.save_settings(config)
-                print(f">> {new_sup} added to suppliers.")
 
 def assign_supplier_and_tag(mats, index, config):
     """Tags an item as Ready to Order and assigns a supplier."""
     suppliers = supplier.load_suppliers() # <-- Pulls from the new JSON
     
     print("\n--- SELECT SUPPLIER ---")
+    if not suppliers:
+        print(" [*] Database empty. Use 'Manage Supplier Database' to add suppliers.")
+        
     for i, sup in enumerate(suppliers):
-         print(f"{i+1}. {sup['name']}") # <-- References the 'name' key
+         print(f"{i+1}. {sup['name']}") 
     print("0. Leave as TBA")
     
     sup_choice = input("Select Supplier #: ").strip()
     supplier_name = "TBA"
-    if sup_choice.isdigit() and 0 < int(sup_choice) <= len(suppliers):
+    
+    if sup_choice == '0':
+        pass # Stays as TBA
+    elif sup_choice.isdigit() and 0 < int(sup_choice) <= len(suppliers):
         supplier_name = suppliers[int(sup_choice)-1]['name']
+    else:
+        print("!! Invalid number entered. Defaulting to TBA.")
         
     mats[index]['supplier'] = supplier_name
     mats[index]['procurement_status'] = 'Ready to Order'
@@ -98,29 +87,65 @@ def project_procurement_dashboard(selected_project, index, config):
                     "supplier": "TBA",
                     "markup_percent": config.get('markup_rate', 0.15) * 100
                 })
+                
+                # --- CRITICAL FIX: Recalculate the project totals ---
+                labor = selected_project.get('Labor', [])
+                base = engine.calculate_totals(labor, mats)
+                tax = engine.calculate_gst(base['total_ex'])
+                
+                selected_project['Total_Ex_GST'] = base['total_ex']
+                selected_project['GST'] = tax['gst_value']
+                selected_project['Total_Inc_GST'] = tax['total_inc_gst']
+                # ----------------------------------------------------
+                
                 storage.update_project(index, selected_project)
-                print(">> Extra material added to project.")
+                print(">> Extra material added and budget recalculated.")
             except ValueError:
                 print("!! Invalid cost.")
 
 def select_active_project_ui(config):
     """Helper to pick a project for procurement."""
-    logs = storage.get_all_history()
-    active_projects = [(i, p) for i, p in enumerate(logs) if p.get('Status') == 'Active']
-    
-    if not active_projects:
-        print("\n!! No 'Active' projects found. Change a project's status to Active first.")
-        input("Press Enter to return...")
-        return
+    while True:
+        logs = storage.get_all_history()
+        active_projects = [(i, p) for i, p in enumerate(logs) if p.get('Status') == 'Active']
         
-    print("\n--- SELECT ACTIVE PROJECT ---")
-    for display_idx, (real_idx, p) in enumerate(active_projects):
-        print(f"{display_idx+1}. {p.get('Project_ID')} - {p['Project']}")
+        if not active_projects:
+            print("\n!! No 'Active' projects found. Change a project's status to Active first.")
+            input("Press Enter to return...")
+            return
+            
+        print("\n--- SELECT ACTIVE PROJECT ---")
+        for display_idx, (real_idx, p) in enumerate(active_projects):
+            print(f"{display_idx+1}. {p.get('Project_ID')} - {p['Project']}")
+            
+        choice = input("\nSelect List #, Job Number, or '0' to cancel: ").strip().upper()
         
-    choice = input("\nSelect Project # (0 to cancel): ")
-    if choice.isdigit() and 0 < int(choice) <= len(active_projects):
-        real_idx, selected_project = active_projects[int(choice)-1]
-        project_procurement_dashboard(selected_project, real_idx, config)
+        if choice == '0':
+            break
+
+        selected = None
+        selected_real_idx = -1
+        
+        # Option A: User entered the list index (1, 2, 3...)
+        if choice.isdigit() and 0 < int(choice) <= len(active_projects):
+            selected_real_idx, selected = active_projects[int(choice)-1]
+        
+        # Option B: User entered the Job Number (e.g., 10011 or JN-10011)
+        else:
+            prefix = config.get('id_prefix', 'JN-')
+            search_id = f"{prefix}{choice}" if (not choice.startswith(prefix) and choice.isdigit()) else choice
+            
+            for real_idx, p in active_projects:
+                if p.get('Project_ID') == search_id:
+                    selected = p
+                    selected_real_idx = real_idx
+                    break
+                    
+        # Route to Dashboard or show Error
+        if selected:
+            project_procurement_dashboard(selected, selected_real_idx, config)
+        else:
+            print("\n!! Invalid selection. Please enter a valid List # or Job Number.")
 
 def view_ready_to_order_list():
     """Global view of all tagged items waiting for Purchase Orders."""

@@ -60,7 +60,15 @@ def print_project_dashboard(selected):
         spent = m.get('actual_cost', 0)
         markup_val = m.get('markup_percent', 0.0)
         
-        mat_label = m['name'][:28] + " (V)" if m.get('variation') else m['name'][:32]
+        proc_status = m.get('procurement_status', 'Pending')
+        status_tag = ""
+        if proc_status == 'Ready to Order':
+            status_tag = "[RTO] "
+        elif proc_status == 'Received':
+            status_tag = "[RCVD] "
+            
+        base_name = status_tag + m['name']
+        mat_label = base_name[:28] + " (V)" if m.get('variation') else base_name[:32]
         
         est_sell = orig_cost * (1 + (markup_val / 100))
         rem_cost = max(0, orig_cost - spent)
