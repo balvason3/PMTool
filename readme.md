@@ -1,30 +1,31 @@
-# PMTool: Project & Procurement Manager
-
-PMTool is a lightweight, Python-based command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement. 
+PMTool: Project & Procurement Manager
+PMTool is a lightweight, Python-based command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement.
 
 Currently in active development, this tool bridges the gap between messy spreadsheets and expensive, bloated project management software.
 
-## 🚀 Features
+🚀 Features
+Project Estimating: Build quotes by calculating labor hours, material costs, markups, and GST.
 
-* **Project Estimating:** Build quotes by calculating labor hours, material costs, markups, and GST.
-* **Lifecycle Tracking:** Track projects through various stages (Draft, Quoted, Active, Completed, Invoiced, Archived).
-* **Live Dashboards:** View real-time financial health, including base budgets, total markup, and non-billable variances.
-* **Procurement Automation:** * Tag materials as "Ready to Order" across multiple active projects.
-  * Manage a built-in Supplier Database.
-  * Automatically generate professional, landscape-formatted **PDF Purchase Orders** ready to email to suppliers.
-* **Global Settings:** Customize your company details, default tax rates, and standard materials/roles.
+Lifecycle Tracking: Track projects through various stages (Draft, Quoted, Active, Completed, Invoiced, Archived).
 
----
+Live Dashboards: View real-time financial health, including base budgets, total markup, and non-billable variances.
 
-## 💻 Installation Instructions
+Procurement Automation: * Tag materials as "Ready to Order" across multiple active projects.
 
-To run PMTool on your local machine, you will need to have **Python 3** installed. 
+Manage a built-in Supplier Database.
 
-### Step 1: Download the Project
+Automatically generate professional, landscape-formatted PDF Purchase Orders ready to email to suppliers.
+
+Global Settings: Customize your company details, default tax rates, and standard materials/roles.
+
+💻 Installation Instructions
+To run PMTool on your local machine, you will need to have Python 3 installed.
+
+Step 1: Download the Project
 Download or clone this repository to your local computer.
-```bash
-git clone [https://github.com/YOUR-USERNAME/PMTool.git](https://github.com/YOUR-USERNAME/PMTool.git)
 
+Bash
+git clone https://github.com/YOUR-USERNAME/PMTool.git
 Step 2: Install Dependencies
 PMTool uses a lightweight external library (xhtml2pdf) to generate the PDF Purchase Orders. Open your terminal (or Command Prompt/PowerShell), navigate to the PMTool folder, and run:
 
