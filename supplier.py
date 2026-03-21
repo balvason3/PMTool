@@ -44,6 +44,28 @@ def add_supplier_ui():
     suppliers.append(new_sup)
     save_suppliers(suppliers)
     print(f">> Supplier '{name}' saved successfully.")
+    
+def add_supplier_inline(name):
+    """Quickly adds a supplier during the procurement process."""
+    print(f"\n--- ADDING NEW SUPPLIER: {name.upper()} ---")
+    abn = input("ABN (Press Enter to skip): ").strip()
+    phone = input("Contact Phone (Press Enter to skip): ").strip()
+    address = input("Address (Press Enter to skip): ").strip()
+    payment = input("Payment Terms/Details (Press Enter to skip): ").strip()
+
+    new_sup = {
+        "name": name,
+        "abn": abn if abn else "N/A",
+        "phone": phone if phone else "N/A",
+        "address": address if address else "N/A",
+        "payment_details": payment if payment else "N/A"
+    }
+
+    suppliers = load_suppliers()
+    suppliers.append(new_sup)
+    save_suppliers(suppliers)
+    print(f">> Supplier '{name}' saved to database.")
+    return name
 
 def view_suppliers_ui():
     """Displays the list of all suppliers and allows zooming in for details."""

@@ -100,9 +100,6 @@ def procurement_main_menu():
             break
         else:
             print("!! Invalid choice.")
-2. The Settings Menu (settings.py)
-Replace the settings_menu_ui() function inside your settings.py file with this complete, updated version. This adds Option 7 and the safe "Press Enter to keep current value" logic for your company details:
-
 
 def settings_menu_ui():
     """Main settings dashboard."""

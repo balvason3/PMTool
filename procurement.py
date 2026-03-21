@@ -8,25 +8,30 @@ import po_generator
 
 def assign_supplier_and_tag(mats, index, config):
     """Tags an item as Ready to Order and assigns a supplier."""
-    suppliers = supplier.load_suppliers() # <-- Pulls from the new JSON
+    suppliers = supplier.load_suppliers() 
     
     print("\n--- SELECT SUPPLIER ---")
     if not suppliers:
-        print(" [*] Database empty. Use 'Manage Supplier Database' to add suppliers.")
+        print(" [*] Database empty. You can type a new supplier name to add one.")
         
     for i, sup in enumerate(suppliers):
          print(f"{i+1}. {sup['name']}") 
     print("0. Leave as TBA")
     
-    sup_choice = input("Select Supplier #: ").strip()
+    # Changed the prompt so it's clear you can type a name
+    sup_choice = input("\nSelect Supplier # OR type a new Supplier Name: ").strip()
     supplier_name = "TBA"
     
     if sup_choice == '0':
         pass # Stays as TBA
     elif sup_choice.isdigit() and 0 < int(sup_choice) <= len(suppliers):
+        # User entered a valid number
         supplier_name = suppliers[int(sup_choice)-1]['name']
+    elif sup_choice and not sup_choice.isdigit():
+        # User entered a text string (a new name!)
+        supplier_name = supplier.add_supplier_inline(sup_choice)
     else:
-        print("!! Invalid number entered. Defaulting to TBA.")
+        print("!! Invalid entry. Defaulting to TBA.")
         
     mats[index]['supplier'] = supplier_name
     mats[index]['procurement_status'] = 'Ready to Order'

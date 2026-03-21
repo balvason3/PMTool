@@ -52,5 +52,12 @@
             "labor_role": "Electrician",
             "labor_hours": 0.05
         }
-    ]
+    ],
+    "company_details": {
+        "name": "Chris's PM Company",
+        "abn": "12123123123",
+        "address": "123 Business Street",
+        "phone": "0444 000 111",
+        "email": "admin@company.com.au"
+    }
 }

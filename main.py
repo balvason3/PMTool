@@ -8,7 +8,7 @@ import metadata
 import notes
 import settings
 import procurement
-import 
+import po_generator
 
 def create_estimate():
     name = input("Project Name: ")
