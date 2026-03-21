@@ -3,6 +3,7 @@ import storage
 import settings
 import supplier
 import engine
+import po_generator
 
 
 def assign_supplier_and_tag(mats, index, config):
@@ -182,7 +183,7 @@ def view_ready_to_order_list():
     # Placeholder for future PO generation logic
     print("NOTE: Automated PO Generation will be attached to this list in a future update.")
     input("\nPress Enter to return...")
-
+    
 def procurement_main_menu():
     """Main routing menu for the Procurement module."""
     while True:
@@ -192,7 +193,8 @@ def procurement_main_menu():
         print("="*40)
         print("1. Project Materials (Tag & Receive)")
         print("2. 'Ready to Order' Master List")
-        print("3. Manage Supplier Database") # <-- This stays the same
+        print("3. Generate Purchase Order")   
+        print("4. Manage Supplier Database")  
         print("0. Back to Main Menu")
         
         choice = input("\nSelect: ").strip()
@@ -202,6 +204,8 @@ def procurement_main_menu():
         elif choice == '2':
             view_ready_to_order_list()
         elif choice == '3':
-            supplier.supplier_menu_ui() # <-- Routs to the new file!
+            po_generator.generate_purchase_order_ui()  # <-- CALLS THE NEW FILE
+        elif choice == '4':
+            supplier.supplier_menu_ui()
         elif choice == '0':
             break

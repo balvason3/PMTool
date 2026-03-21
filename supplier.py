@@ -88,6 +88,77 @@ def view_suppliers_ui():
             input("\nPress Enter to return to the directory...")
         else:
             print("!! Invalid selection. Please enter a valid Supplier #.")
+            
+def edit_supplier_ui():
+    """Allows the user to edit an existing supplier's details."""
+    suppliers = load_suppliers()
+    if not suppliers:
+        print("\n!! No suppliers found to edit.")
+        return
+
+    print("\n--- EDIT SUPPLIER ---")
+    for i, sup in enumerate(suppliers):
+        print(f"{i+1}. {sup.get('name', 'Unknown')}")
+        
+    choice = input("\nSelect Supplier # to edit (0 to cancel): ").strip()
+    if choice == '0':
+        return
+        
+    if choice.isdigit() and 0 < int(choice) <= len(suppliers):
+        idx = int(choice) - 1
+        target = suppliers[idx]
+        
+        print(f"\nEditing: {target.get('name')}")
+        print(" [*] Press Enter on any field to keep its current value.")
+        
+        name = input(f"Name [{target.get('name')}]: ").strip()
+        abn = input(f"ABN [{target.get('abn', 'N/A')}]: ").strip()
+        phone = input(f"Phone [{target.get('phone', 'N/A')}]: ").strip()
+        address = input(f"Address [{target.get('address', 'N/A')}]: ").strip()
+        payment = input(f"Payment Details [{target.get('payment_details', 'N/A')}]: ").strip()
+        
+        # Only update the fields where the user actually typed something
+        if name: target['name'] = name
+        if abn: target['abn'] = abn
+        if phone: target['phone'] = phone
+        if address: target['address'] = address
+        if payment: target['payment_details'] = payment
+        
+        suppliers[idx] = target
+        save_suppliers(suppliers)
+        print(f">> Supplier '{target['name']}' updated successfully.")
+    else:
+        print("!! Invalid selection.")
+
+def delete_supplier_ui():
+    """Allows the user to safely delete a supplier."""
+    suppliers = load_suppliers()
+    if not suppliers:
+        print("\n!! No suppliers found to delete.")
+        return
+
+    print("\n--- DELETE SUPPLIER ---")
+    for i, sup in enumerate(suppliers):
+        print(f"{i+1}. {sup.get('name', 'Unknown')}")
+        
+    choice = input("\nSelect Supplier # to DELETE (0 to cancel): ").strip()
+    if choice == '0':
+        return
+        
+    if choice.isdigit() and 0 < int(choice) <= len(suppliers):
+        idx = int(choice) - 1
+        target_name = suppliers[idx].get('name', 'Unknown')
+        
+        # Always force a confirmation for destructive actions
+        confirm = input(f"Are you SURE you want to delete '{target_name}'? (Y/N): ").strip().upper()
+        if confirm == 'Y':
+            del suppliers[idx]
+            save_suppliers(suppliers)
+            print(f">> Supplier '{target_name}' deleted.")
+        else:
+            print(">> Deletion canceled.")
+    else:
+        print("!! Invalid selection.")
 
 def supplier_menu_ui():
     """Main menu for managing the supplier database."""
@@ -97,6 +168,8 @@ def supplier_menu_ui():
         print("="*40)
         print("1. View All Suppliers")
         print("2. Add New Supplier")
+        print("3. Edit Supplier")    # <-- NEW
+        print("4. Delete Supplier")  # <-- NEW
         print("0. Back")
         
         choice = input("\nSelect: ").strip()
@@ -104,6 +177,10 @@ def supplier_menu_ui():
             view_suppliers_ui()
         elif choice == '2': 
             add_supplier_ui()
+        elif choice == '3':
+            edit_supplier_ui()
+        elif choice == '4':
+            delete_supplier_ui()
         elif choice == '0': 
             break
         else:
