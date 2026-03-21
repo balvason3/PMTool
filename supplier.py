@@ -46,20 +46,48 @@ def add_supplier_ui():
     print(f">> Supplier '{name}' saved successfully.")
 
 def view_suppliers_ui():
-    """Displays the list of all suppliers and their details."""
-    suppliers = load_suppliers()
-    if not suppliers:
-        print("\n!! No suppliers found. Please add one first.")
-        return
-    
-    print("\n" + "-"*80)
-    print(f"{'#':<3} | {'Supplier Name':<25} | {'ABN':<15} | {'Phone'}")
-    print("-" * 80)
-    for i, sup in enumerate(suppliers):
-        print(f"{i+1:<3} | {sup['name'][:25]:<25} | {sup['abn'][:15]:<15} | {sup['phone']}")
-    print("-" * 80)
-    
-    input("\nPress Enter to return...")
+    """Displays the list of all suppliers and allows zooming in for details."""
+    while True:
+        suppliers = load_suppliers()
+        if not suppliers:
+            print("\n!! No suppliers found. Please add one first.")
+            return
+        
+        print("\n" + "="*80)
+        print("   SUPPLIER DIRECTORY   ")
+        print("=" * 80)
+        # Shifted Phone to the main view instead of ABN, as it's usually more immediately useful
+        print(f"{'#':<3} | {'Supplier Name':<30} | {'Phone':<15} | {'ABN'}")
+        print("-" * 80)
+        for i, sup in enumerate(suppliers):
+            name = sup.get('name', 'Unknown')[:30]
+            phone = sup.get('phone', 'N/A')[:15]
+            abn = sup.get('abn', 'N/A')[:20]
+            print(f"{i+1:<3} | {name:<30} | {phone:<15} | {abn}")
+        print("-" * 80)
+        
+        choice = input("\nEnter Supplier # for more details, or '0' to go back: ").strip()
+        
+        if choice == '0':
+            break
+            
+        if choice.isdigit() and 0 < int(choice) <= len(suppliers):
+            selected = suppliers[int(choice)-1]
+            
+            # --- DETAILED "ZOOMED IN" VIEW ---
+            print("\n" + "*"*50)
+            print(f"   SUPPLIER PROFILE: {selected.get('name', 'Unknown').upper()}   ")
+            print("*"*50)
+            print(f"Name:            {selected.get('name', 'N/A')}")
+            print(f"ABN:             {selected.get('abn', 'N/A')}")
+            print(f"Phone:           {selected.get('phone', 'N/A')}")
+            print(f"Address:         {selected.get('address', 'N/A')}")
+            print(f"Payment Details: {selected.get('payment_details', 'N/A')}")
+            print("*"*50)
+            
+            input("\nPress Enter to return to the directory...")
+        else:
+            print("!! Invalid selection. Please enter a valid Supplier #.")
 
 def supplier_menu_ui():
     """Main menu for managing the supplier database."""
