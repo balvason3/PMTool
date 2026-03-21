@@ -1,5 +1,5 @@
-PMTool: Project & Procurement Manager
-PMTool is a lightweight, Python-based command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement.
+BASEline: Project & Procurement Manager
+BASEline is a lightweight, Python-based command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement.
 
 Currently in active development, this tool bridges the gap between messy spreadsheets and expensive, bloated project management software.
 
@@ -19,15 +19,15 @@ Automatically generate professional, landscape-formatted PDF Purchase Orders rea
 Global Settings: Customize your company details, default tax rates, and standard materials/roles.
 
 💻 Installation Instructions
-To run PMTool on your local machine, you will need to have Python 3 installed.
+To run BASEline on your local machine, you will need to have Python 3 installed.
 
 Step 1: Download the Project
 Download or clone this repository to your local computer.
 
 Bash
-git clone https://github.com/YOUR-USERNAME/PMTool.git
+git clone https://github.com/YOUR-USERNAME/BASEline.git
 Step 2: Install Dependencies
-PMTool uses a lightweight external library (xhtml2pdf) to generate the PDF Purchase Orders. Open your terminal (or Command Prompt/PowerShell), navigate to the PMTool folder, and run:
+BASEline uses a lightweight external library (xhtml2pdf) to generate the PDF Purchase Orders. Open your terminal (or Command Prompt/PowerShell), navigate to the BASEline folder, and run:
 
 Bash
 pip install xhtml2pdf
@@ -41,7 +41,7 @@ python main.py
 (On Windows, you can also use py main.py).
 
 🛠️ Getting Started (First Time Setup)
-When you boot up PMTool for the first time, follow these quick steps to get your environment ready:
+When you boot up BASEline for the first time, follow these quick steps to get your environment ready:
 
 Select Option 4: Global Settings from the Main Menu.
 
