@@ -93,24 +93,6 @@ def save_to_db(name, scope, client, target_date, labor, materials, total_ex, gst
     history.append(budget_data)
     overwrite_db(history)
 
-def archive_project_by_index(index):
-    """Changes a project's status instead of deleting it."""
-    history = get_all_history()
-    if 0 <= index < len(history):
-        history[index]["Status"] = "Archived"
-        overwrite_db(history)
-        return history[index]['Project']
-    return None
-    
-def restore_project_by_index(index):
-    """Changes a project's status back to Active."""
-    history = get_all_history()
-    if 0 <= index < len(history):
-        history[index]["Status"] = "Active"
-        overwrite_db(history)
-        return history[index]['Project']
-    return None
-    
 def update_project(index, updated_data):
     history = get_all_history()
     if 0 <= index < len(history):
