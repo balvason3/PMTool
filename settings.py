@@ -76,34 +76,6 @@ def save_settings(settings):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(settings, f, indent=4)
 
-def procurement_main_menu():
-    """Main routing menu for the Procurement module."""
-    while True:
-        config = settings.load_settings()
-        print("\n" + "="*40)
-        print("   PMTool: PROCUREMENT   ")
-        print("="*40)
-        print("1. Project Materials (Tag & Receive)")
-        print("2. 'Ready to Order' Master List")
-        print("3. Generate Purchase Order")   
-        print("4. Manage Supplier Database")  
-        print("0. Back to Main Menu")
-        
-        choice = input("\nSelect: ").strip()
-        
-        if choice == '1':
-            select_active_project_ui(config)
-        elif choice == '2':
-            view_ready_to_order_list()
-        elif choice == '3':
-            po_generator.generate_purchase_order_ui()  # <-- CALLS THE NEW FILE
-        elif choice == '4':
-            supplier.supplier_menu_ui()
-        elif choice == '0':
-            break
-        else:
-            print("!! Invalid choice.")
-
 def settings_menu_ui():
     """Main settings dashboard."""
     while True:
