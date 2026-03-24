@@ -2,7 +2,8 @@
 import json
 import os
 
-CONFIG_FILE = 'config.json'
+DATA_DIR = 'data'
+CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 
 DEFAULT_SETTINGS = {
     "gst_rate": 0.10,
@@ -41,6 +42,7 @@ DEFAULT_SETTINGS = {
 }
 
 def load_settings():
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     if not os.path.exists(CONFIG_FILE):
         save_settings(DEFAULT_SETTINGS)
         return DEFAULT_SETTINGS
@@ -70,6 +72,7 @@ def load_settings():
         return config
 
 def save_settings(settings):
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     with open(CONFIG_FILE, 'w') as f:
         json.dump(settings, f, indent=4)
 

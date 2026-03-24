@@ -2,8 +2,20 @@
 import storage
 import supplier
 import settings
+import os
+import sys
 from datetime import datetime
 from xhtml2pdf import pisa
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def generate_purchase_order_ui():
     """Generates a PDF Purchase Order using the HTML template."""
@@ -48,7 +60,8 @@ def generate_purchase_order_ui():
     my_company = config.get('company_details', {})
     
     try:
-        with open('template.html', 'r') as file:
+        template_path = get_resource_path('template.html')
+        with open(template_path, 'r') as file:
             html_content = file.read()
     except FileNotFoundError:
         print("!! Error: 'template.html' not found in the directory.")
@@ -99,15 +112,19 @@ def generate_purchase_order_ui():
     html_content = html_content.replace('{{TOTAL_VALUE}}', f"{total_po_value:,.2f}")
 
     # 6. Generate the PDF
+    EXPORT_DIR = 'exports'
+    os.makedirs(EXPORT_DIR, exist_ok=True)
     filename = f"{po_number}_{selected_sup.replace(' ', '')}.pdf"
-    with open(filename, "w+b") as result_file:
+    filepath = os.path.join(EXPORT_DIR, filename)
+    
+    with open(filepath, "w+b") as result_file:
         pisa_status = pisa.CreatePDF(html_content, dest=result_file)
 
     if pisa_status.err:
         print("!! Error generating PDF.")
     else:
         storage.overwrite_db(logs)
-        print(f"\n>> SUCCESS: PDF saved as '{filename}'")
+        print(f"\n>> SUCCESS: PDF saved as '{filepath}'")
         print(f">> Moved {len(items_to_order)} items to 'Ordered' status.")
     
     input("\nPress Enter to return...")

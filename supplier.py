@@ -2,10 +2,12 @@
 import json
 import os
 
-SUPPLIERS_FILE = 'suppliers.json'
+DATA_DIR = 'data'
+SUPPLIERS_FILE = os.path.join(DATA_DIR, 'suppliers.json')
 
 def load_suppliers():
     """Loads suppliers from the JSON file. Returns an empty list if it doesn't exist."""
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     if not os.path.exists(SUPPLIERS_FILE):
         return []
     with open(SUPPLIERS_FILE, 'r') as f:
@@ -16,6 +18,7 @@ def load_suppliers():
 
 def save_suppliers(suppliers):
     """Saves the supplier list back to the JSON file."""
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     with open(SUPPLIERS_FILE, 'w') as f:
         json.dump(suppliers, f, indent=4)
 

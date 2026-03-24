@@ -3,9 +3,11 @@ import os
 from datetime import datetime
 import settings
 
-DB_FILE = 'projectBudgetDB.json'
+DATA_DIR = 'data'
+DB_FILE = os.path.join(DATA_DIR, 'projectBudgetDB.json')
 
 def get_all_history():
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     config = settings.load_settings()
     id_prefix = config['id_prefix']
     start_number = config['start_number']
@@ -67,6 +69,7 @@ def generate_next_id(history):
     return f"{id_prefix}{highest + 1}"
 
 def overwrite_db(history_list):
+    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     with open(DB_FILE, 'w') as f:
         for entry in history_list:
             json.dump(entry, f)
