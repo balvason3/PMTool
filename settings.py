@@ -75,6 +75,253 @@ def save_settings(settings):
     os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
     with open(CONFIG_FILE, 'w') as f:
         json.dump(settings, f, indent=4)
+        
+def manage_standard_roles_ui():
+    """UI for viewing, adding, editing, and deleting standard roles."""
+    while True:
+        config = load_settings()
+        roles = config.get('standard_roles', [])
+        
+        print("\n" + "="*40)
+        print("   STANDARD ROLES DATABASE   ")
+        print("="*40)
+        if not roles:
+            print("No standard roles found.")
+        else:
+            for i, r in enumerate(roles):
+                print(f"{i+1}. {r['name']} (${r.get('rate', 0.0):.2f}/hr)")
+        print("-" * 40)
+        print("A. Add New Role")
+        print("E. Edit Role")
+        print("D. Delete Role")
+        print("0. Back")
+        
+        choice = input("\nSelect an action: ").strip().upper()
+        
+        if choice == '0':
+            break
+            
+        elif choice == 'A':
+            name = input("Enter new role name: ").strip().title()
+            if name:
+                try:
+                    rate = float(input(f"Enter hourly cost rate for {name}: $"))
+                    roles.append({"name": name, "rate": rate})
+                    config['standard_roles'] = roles
+                    save_settings(config)
+                    print(f">> Role '{name}' added successfully.")
+                except ValueError:
+                    print("!! Invalid rate entered.")
+            else:
+                print("!! Name cannot be empty.")
+                
+        elif choice == 'E':
+            if not roles: continue
+            num = input("Enter Role # to edit (0 to cancel): ").strip()
+            if num == '0': continue
+            
+            if num.isdigit() and 0 < int(num) <= len(roles):
+                idx = int(num) - 1
+                target = roles[idx]
+                print(f"\nEditing: {target['name']}")
+                print(" [*] Press Enter on any field to keep its current value.")
+                
+                new_name = input(f"Name [{target['name']}]: ").strip().title()
+                rate_in = input(f"Hourly Rate [${target.get('rate', 0.0):.2f}]: ").strip()
+                
+                if new_name: target['name'] = new_name
+                if rate_in:
+                    try:
+                        target['rate'] = float(rate_in)
+                    except ValueError:
+                        print("!! Invalid rate entered. Keeping old rate.")
+                        
+                roles[idx] = target
+                config['standard_roles'] = roles
+                save_settings(config)
+                print(">> Role updated.")
+            else:
+                print("!! Invalid selection.")
+                
+        elif choice == 'D':
+            if not roles: continue
+            num = input("Enter Role # to DELETE (0 to cancel): ").strip()
+            if num == '0': continue
+            
+            if num.isdigit() and 0 < int(num) <= len(roles):
+                idx = int(num) - 1
+                target_name = roles[idx]['name']
+                confirm = input(f"Are you SURE you want to delete '{target_name}'? (Y/N): ").strip().upper()
+                if confirm == 'Y':
+                    del roles[idx]
+                    config['standard_roles'] = roles
+                    save_settings(config)
+                    print(f">> Role '{target_name}' deleted.")
+            else:
+                print("!! Invalid selection.")
+        else:
+            print("!! Invalid choice.")     
+
+def manage_standard_materials_ui():
+    """UI for viewing, adding, editing, and deleting standard materials and assemblies."""
+    while True:
+        config = load_settings()
+        materials = config.get('standard_materials', [])
+        
+        print("\n" + "="*40)
+        print("   STANDARD MATERIALS DATABASE   ")
+        print("="*40)
+        if not materials:
+            print("No standard materials found.")
+        else:
+            for i, m in enumerate(materials):
+                tag = "[*] Assembly" if m.get('is_assembly') else "[-] Material"
+                unit = m.get('unit', 'each') # Falls back to 'each' for old items
+                print(f"{i+1}. {tag}: {m['name']} (${m.get('cost', 0.0):.2f} / {unit})")
+        print("-" * 40)
+        print("A. Add New Material/Assembly")
+        print("E. Edit Item")
+        print("D. Delete Item")
+        print("0. Back")
+        
+        choice = input("\nSelect an action: ").strip().upper()
+        
+        if choice == '0':
+            break
+            
+        elif choice == 'A':
+            name = input("Enter new material name: ").strip().title()
+            if not name:
+                print("!! Name cannot be empty.")
+                continue
+                
+            try:
+                unit = input("Enter unit of measurement (e.g., each, m, km, hr) [Default: each]: ").strip()
+                if not unit: unit = "each"
+                
+                cost = float(input(f"Enter cost per {unit} for {name}: $"))
+                is_assy_in = input("Is this an Assembly that requires labor? (Y/N): ").strip().upper()
+                
+                if is_assy_in == 'Y':
+                    cons_cost = input("Enter additional consumables cost per unit (Press Enter for $0): ").strip()
+                    cons_cost = float(cons_cost) if cons_cost else 0.0
+                    
+                    labor_role = input("Enter associated labor role (e.g., Electrician): ").strip().title()
+                    labor_hrs = input(f"Enter labor hours per unit for {labor_role} (Press Enter for 0): ").strip()
+                    labor_hrs = float(labor_hrs) if labor_hrs else 0.0
+                    
+                    materials.append({
+                        "name": name, 
+                        "cost": cost, 
+                        "unit": unit,
+                        "is_assembly": True,
+                        "consumables_cost": cons_cost,
+                        "labor_role": labor_role,
+                        "labor_hours": labor_hrs
+                    })
+                else:
+                    materials.append({"name": name, "cost": cost, "unit": unit, "is_assembly": False})
+                    
+                config['standard_materials'] = materials
+                save_settings(config)
+                print(f">> Item '{name}' added successfully.")
+            except ValueError:
+                print("!! Invalid number entered.")
+                
+        elif choice == 'E':
+            if not materials: continue
+            num = input("Enter Item # to edit (0 to cancel): ").strip()
+            if num == '0': continue
+            
+            if num.isdigit() and 0 < int(num) <= len(materials):
+                idx = int(num) - 1
+                target = materials[idx]
+                current_unit = target.get('unit', 'each')
+                
+                print(f"\nEditing: {target['name']}")
+                print(" [*] Press Enter on any field to keep its current value.")
+                
+                new_name = input(f"Name [{target['name']}]: ").strip().title()
+                unit_in = input(f"Unit of Measurement [{current_unit}]: ").strip()
+                
+                # Check the new unit so the cost prompt makes sense
+                display_unit = unit_in if unit_in else current_unit
+                cost_in = input(f"Cost per {display_unit} [${target.get('cost', 0.0):.2f}]: ").strip()
+                
+                if new_name: target['name'] = new_name
+                if unit_in: target['unit'] = unit_in
+                if cost_in:
+                    try: target['cost'] = float(cost_in)
+                    except ValueError: print("!! Invalid cost. Keeping old cost.")
+                
+                # If it is an assembly, prompt for the extra details
+                if target.get('is_assembly'):
+                    print("\n--- Assembly Details ---")
+                    cons_in = input(f"Consumables Cost [${target.get('consumables_cost', 0.0):.2f}]: ").strip()
+                    role_in = input(f"Labor Role [{target.get('labor_role', '')}]: ").strip().title()
+                    hrs_in = input(f"Labor Hours [{target.get('labor_hours', 0.0)}]: ").strip()
+                    
+                    if cons_in:
+                        try: target['consumables_cost'] = float(cons_in)
+                        except ValueError: pass
+                    if role_in: target['labor_role'] = role_in
+                    if hrs_in:
+                        try: target['labor_hours'] = float(hrs_in)
+                        except ValueError: pass
+                        
+                materials[idx] = target
+                config['standard_materials'] = materials
+                save_settings(config)
+                print(">> Item updated.")
+            else:
+                print("!! Invalid selection.")
+                
+        elif choice == 'D':
+            if not materials: continue
+            num = input("Enter Item # to DELETE (0 to cancel): ").strip()
+            if num == '0': continue
+            
+            if num.isdigit() and 0 < int(num) <= len(materials):
+                idx = int(num) - 1
+                target_name = materials[idx]['name']
+                confirm = input(f"Are you SURE you want to delete '{target_name}'? (Y/N): ").strip().upper()
+                if confirm == 'Y':
+                    del materials[idx]
+                    config['standard_materials'] = materials
+                    save_settings(config)
+                    print(f">> Item '{target_name}' deleted.")
+            else:
+                print("!! Invalid selection.")
+        else:
+            print("!! Invalid choice.")    
+
+def run_first_time_setup():
+    """Gathers initial company info for the config file."""
+    print("\n" + "="*50)
+    print("   INITIAL SETUP: COMPANY DETAILS   ")
+    print("="*50)
+    print("These details will be used to brand your PDF Purchase Orders.")
+    print("You can press Enter to skip any field and fill it later.\n")
+    
+    # This automatically creates the default config.json if it's missing
+    config = load_settings()
+    comp = config.get('company_details', {})
+    
+    name = input(f"Company Name [{comp.get('name', '')}]: ").strip()
+    abn = input(f"ABN [{comp.get('abn', '')}]: ").strip()
+    address = input(f"Address [{comp.get('address', '')}]: ").strip()
+    phone = input(f"Phone [{comp.get('phone', '')}]: ").strip()
+    email = input(f"Email [{comp.get('email', '')}]: ").strip()
+    
+    if name: comp['name'] = name
+    if abn: comp['abn'] = abn
+    if address: comp['address'] = address
+    if phone: comp['phone'] = phone
+    if email: comp['email'] = email
+    
+    config['company_details'] = comp
+    save_settings(config)
+    print("\n>> Setup Complete! You can change these anytime in the Global Settings.")            
 
 def settings_menu_ui():
     """Main settings dashboard."""
@@ -100,7 +347,8 @@ def settings_menu_ui():
         print(f"4. Next Start Number:  {config.get('start_number', 10000)}")
         print("5. View/Edit Standard Roles")
         print("6. View/Edit Standard Materials")
-        print("7. Update Company Details (For PDFs)") # <-- NEW OPTION
+        print("7. Update Company Details (For PDFs)")
+        print("8. Re-run Setup Wizard & Tutorial")
         print("0. Back")
         
         choice = input("\nSelect: ").strip()
@@ -128,15 +376,9 @@ def settings_menu_ui():
                 save_settings(config)
             except ValueError: print("!! Invalid input.")
         elif choice == '5':
-            print(">> Use your config.json file to edit roles for now.")
+            manage_standard_roles_ui()
         elif choice == '6':
-            print("\n--- STANDARD MATERIALS & ASSEMBLIES ---")
-            for m in config.get('standard_materials', []):
-                if m.get('is_assembly'):
-                    print(f"[*] {m['name']} (${m['cost']:.2f})")
-                else:
-                    print(f"[-] {m['name']} (${m['cost']:.2f})")
-            input("\nPress Enter to return...")
+            manage_standard_materials_ui()
         elif choice == '7':
             print("\n--- COMPANY DETAILS ---")
             print(" [*] Press Enter on any field to keep its current value.")
@@ -160,6 +402,13 @@ def settings_menu_ui():
             config['company_details'] = comp
             save_settings(config)
             print(">> Company details updated.")
+            
+        elif choice == '8':
+            demo = input("\nWould you like to view the tutorial? (Y/N): ").strip().upper()
+            if demo == 'Y':
+                import tutorial
+                tutorial.run_demo()
+            run_first_time_setup()
             
         else:
             print("!! Invalid choice.")
