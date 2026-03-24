@@ -9,6 +9,9 @@ import notes
 import settings
 import procurement
 import po_generator
+import tutorial
+import os
+
 
 def create_estimate():
     name = input("Project Name: ")
@@ -167,5 +170,21 @@ def main_menu():
             print("\nShutting down... Goodbye!")
             break
 
+def startup_check():
+    """Checks if config.json exists. If not, triggers the onboarding wizard."""
+    if not os.path.exists(settings.CONFIG_FILE):
+        print("\n" + "*"*60)
+        print("   WELCOME TO BASELINE - PROJECT MANAGEMENT TOOL   ")
+        print("*"*60)
+        
+        demo = input("\nWould you like to view a quick tutorial? (Y/N): ").strip().upper()
+        if demo == 'Y':
+            tutorial.run_demo()
+        
+        # Trigger the company setup wizard
+        settings.run_first_time_setup()
+        input("\nPress Enter to open the Main Menu...")
+
 if __name__ == "__main__":
+    startup_check()  # <-- NEW: Runs the check before the menu
     main_menu()

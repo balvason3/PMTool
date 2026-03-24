@@ -46,6 +46,7 @@ def get_material_inputs(labor_list):
             
         mat_name = mat_data['name']
         is_assembly = mat_data.get('is_assembly', False)
+        unit = mat_data.get('unit', 'each')  # <-- Fetches the custom unit!
         
         try:
             markup_in = input(f"  Markup % (Press Enter for default {default_markup:.1f}%): ").strip()
@@ -58,7 +59,9 @@ def get_material_inputs(labor_list):
                 
             # Logic for Standard Database Items & Assemblies
             else:
-                qty = float(input(f"  Enter Quantity (Units/Meters) for {mat_name}: "))
+                # <-- The prompt now dynamically inserts the unit here:
+                qty = float(input(f"  Enter Quantity ({unit}) for {mat_name}: "))
+                
                 base_cost = qty * mat_data['cost']
                 items.append({"name": mat_name, "estimated_cost": base_cost, "actual_cost": 0.0, "markup_percent": markup_pct})
                 
