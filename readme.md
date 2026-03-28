@@ -1,5 +1,5 @@
-BASEline: Project & Procurement Manager
-BASEline is a lightweight, Python-based command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement.
+Bedrock: Project & Procurement Manager
+Bedrock is a lightweight, standalone command-line interface (CLI) application designed to help project managers and solo contractors track project estimates, manage budgets, and automate procurement.
 
 Currently in active development, this tool bridges the gap between messy spreadsheets and expensive, bloated project management software.
 
@@ -10,38 +10,31 @@ Lifecycle Tracking: Track projects through various stages (Draft, Quoted, Active
 
 Live Dashboards: View real-time financial health, including base budgets, total markup, and non-billable variances.
 
-Procurement Automation: * Tag materials as "Ready to Order" across multiple active projects.
+Procurement Automation: Tag materials as "Ready to Order" across multiple active projects.
 
-Manage a built-in Supplier Database.
+Supplier Database: Manage a built-in Supplier Database.
 
-Automatically generate professional, landscape-formatted PDF Purchase Orders ready to email to suppliers.
+PDF Generation: Automatically generate professional, landscape-formatted PDF Purchase Orders ready to email to suppliers.
 
 Global Settings: Customize your company details, default tax rates, and standard materials/roles.
 
-💻 Installation Instructions
-To run BASEline on your local machine, you will need to have Python 3 installed.
+💻 Installation Instructions (Standalone Executable)
+You do not need to install Python or any external libraries to run Bedrock.
 
-Step 1: Download the Project
-Download or clone this repository to your local computer.
+Step 1: Download the Application
+Download the latest main.exe file from the Releases page. (Note: Be sure to update this link!)
 
-Bash
-git clone https://github.com/YOUR-USERNAME/BASEline.git
-Step 2: Install Dependencies
-BASEline uses a lightweight external library (xhtml2pdf) to generate the PDF Purchase Orders. Open your terminal (or Command Prompt/PowerShell), navigate to the BASEline folder, and run:
-
-Bash
-pip install xhtml2pdf
-(Note: If pip is not recognized on Windows, try running py -m pip install xhtml2pdf instead).
+Step 2: Setup your Workspace
+Create a new folder on your computer (e.g., on your Desktop or in your Documents) and place the main.exe file inside it.
+Note: When you run the application, it will automatically generate a data/ folder for your database and an exports/ folder for your PDF Purchase Orders in this same location.
 
 Step 3: Run the Application
-Once the installation is complete, start the application by running:
+Double-click the main.exe file to start the program.
 
-Bash
-python main.py
-(On Windows, you can also use py main.py).
+Troubleshooting Windows Defender: Because this is a custom, self-compiled application, Windows SmartScreen may flag it with a "Windows protected your PC" popup on the first launch. Click "More info" and then "Run anyway" to launch the tool.
 
 🛠️ Getting Started (First Time Setup)
-When you boot up BASEline for the first time, follow these quick steps to get your environment ready:
+When you boot up Bedrock for the first time, follow these quick steps to get your environment ready:
 
 Select Option 4: Global Settings from the Main Menu.
 
@@ -73,4 +66,4 @@ Client Proposal Exporter: Generate client-facing PDF quotes that hide internal m
 
 Progress Claim Tracking: Log invoice stages (e.g., "50% Deposit Paid").
 
-Database Upgrade: Transition from local .json storage to a robust SQL database for faster querying and future multi-user support.
+Database Upgrade: Transition from local .json storage to a robust SQLite database for faster querying and future multi-user support.
