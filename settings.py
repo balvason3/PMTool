@@ -8,8 +8,10 @@ CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 DEFAULT_SETTINGS = {
     "gst_rate": 0.10,
     "markup_rate": 0.15, 
-    "id_prefix": "JN-",
+    "id_prefix": "PJ-",
     "start_number": 10000,
+    "quote_prefix": "QT-",
+    "quote_start": 1000,
     "company_details": {
         "name": "YOUR COMPANY NAME",
         "abn": "XX XXX XXX XXX",

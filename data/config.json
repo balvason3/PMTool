@@ -1,0 +1,65 @@
+{
+    "gst_rate": 0.1,
+    "markup_rate": 0.15,
+    "id_prefix": "PJ-",
+    "start_number": 10000,
+    "quote_prefix": "QT-",
+    "quote_start": 1000,
+    "company_details": {
+        "name": "YOUR COMPANY NAME",
+        "abn": "XX XXX XXX XXX",
+        "address": "123 Business Street",
+        "phone": "0400 000 000",
+        "email": "admin@yourcompany.com.au"
+    },
+    "standard_roles": [
+        {
+            "name": "Project Manager",
+            "rate": 120.0
+        },
+        {
+            "name": "Site Supervisor",
+            "rate": 90.0
+        },
+        {
+            "name": "Admin",
+            "rate": 50.0
+        },
+        {
+            "name": "Electrician",
+            "rate": 85.0
+        },
+        {
+            "name": "Plumber",
+            "rate": 85.0
+        },
+        {
+            "name": "Carpenter",
+            "rate": 75.0
+        },
+        {
+            "name": "General Labor",
+            "rate": 50.0
+        }
+    ],
+    "standard_materials": [
+        {
+            "name": "Standard Power Point",
+            "cost": 15.0,
+            "is_assembly": false
+        },
+        {
+            "name": "LED Downlight",
+            "cost": 25.0,
+            "is_assembly": false
+        },
+        {
+            "name": "Rough-In Electrical Wire (per m)",
+            "cost": 2.5,
+            "is_assembly": true,
+            "consumables_cost": 0.2,
+            "labor_role": "Electrician",
+            "labor_hours": 0.05
+        }
+    ]
+}

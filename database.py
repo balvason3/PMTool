@@ -8,17 +8,17 @@ DB_FILE = os.path.join(DATA_DIR, 'bedrock.db')
 def initialize_db():
     """Creates the SQLite database and tables if they don't exist."""
     os.makedirs(DATA_DIR, exist_ok=True)
-    
-    # Connecting to a file that doesn't exist automatically creates it
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # 1. PROJECTS TABLE (The Core Data)
+    # 1. PROJECTS TABLE (Consolidated)
+    # Added Quote_Number and standardized column names
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_no TEXT UNIQUE,
-            status TEXT DEFAULT 'Active',
+            quote_no TEXT UNIQUE, -- Used once accepted
+            status TEXT DEFAULT 'Draft', -- Defaults to Draft for Estimates
             timestamp TEXT,
             project_name TEXT,
             client TEXT,
@@ -30,7 +30,7 @@ def initialize_db():
         )
     ''')
 
-    # 2. LABOR TABLE (Linked to Projects via project_id)
+    # 2. LABOR TABLE
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS labor (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +46,7 @@ def initialize_db():
         )
     ''')
 
-    # 3. MATERIALS TABLE (Linked to Projects via project_id)
+    # 3. MATERIALS TABLE
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,7 +63,7 @@ def initialize_db():
         )
     ''')
 
-    # 4. NOTES TABLE (Linked to Projects via project_id)
+    # 4. NOTES TABLE
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
