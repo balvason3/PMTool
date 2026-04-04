@@ -243,3 +243,4 @@ def update_project(index, updated_data):
         print(f"\n!! Database Update Error: {e}")
     finally:
         conn.close()
+        
