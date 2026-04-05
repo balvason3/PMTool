@@ -1,9 +1,10 @@
-# --- PMTool: GLOBAL SETTINGS MODULE ---
+# --- BEDROCK: GLOBAL SETTINGS (ORM) ---
 import json
-import os
+from database import AppSetting, StandardRole, StandardMaterial, get_session
 
-DATA_DIR = 'data'
-CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
+# We keep CONFIG_FILE defined just to satisfy the startup_check in main.py temporarily 
+# until we fully delete it.
+CONFIG_FILE = "data/config.json" 
 
 DEFAULT_SETTINGS = {
     "gst_rate": 0.10,
@@ -18,65 +19,74 @@ DEFAULT_SETTINGS = {
         "address": "123 Business Street",
         "phone": "0400 000 000",
         "email": "admin@yourcompany.com.au"
-    },
-    "standard_roles": [
-        {"name": "Project Manager", "rate": 120.0},
-        {"name": "Site Supervisor", "rate": 90.0},
-        {"name": "Admin", "rate": 50.0},
-        {"name": "Electrician", "rate": 85.0},
-        {"name": "Plumber", "rate": 85.0},
-        {"name": "Carpenter", "rate": 75.0},
-        {"name": "General Labor", "rate": 50.0}
-    ],
-    # NEW: Standard Materials & Assemblies Database
-    "standard_materials": [
-        {"name": "Standard Power Point", "cost": 15.00, "is_assembly": False},
-        {"name": "LED Downlight", "cost": 25.00, "is_assembly": False},
-        {
-            "name": "Rough-In Electrical Wire (per m)", 
-            "cost": 2.50, 
-            "is_assembly": True,
-            "consumables_cost": 0.20,
-            "labor_role": "Electrician",
-            "labor_hours": 0.05
-        }
-    ]
+    }
 }
 
 def load_settings():
-    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
-    if not os.path.exists(CONFIG_FILE):
-        save_settings(DEFAULT_SETTINGS)
-        return DEFAULT_SETTINGS
-    with open(CONFIG_FILE, 'r') as f:
-        config = json.load(f)
-        needs_save = False
+    """Loads settings from SQL and returns the expected dictionary."""
+    config = {}
+    for db in get_session():
+        # 1. Load basic key-value settings
+        settings_db = db.query(AppSetting).all()
+        for setting in settings_db:
+            config[setting.key] = json.loads(setting.value)
+            
+        # 2. Load Standard Roles
+        roles_db = db.query(StandardRole).all()
+        config['standard_roles'] = [{"name": r.name, "rate": r.rate} for r in roles_db]
         
-        if 'contingency_rate' in config and 'markup_rate' not in config:
-            config['markup_rate'] = config.pop('contingency_rate')
-            needs_save = True
-            
-        if 'standard_roles' not in config:
-            config['standard_roles'] = DEFAULT_SETTINGS['standard_roles']
-            needs_save = True
-        elif config['standard_roles'] and isinstance(config['standard_roles'][0], str):
-            config['standard_roles'] = [{"name": r, "rate": 0.0} for r in config['standard_roles']]
-            needs_save = True
-            
-        # Inject standard materials if missing
-        if 'standard_materials' not in config:
-            config['standard_materials'] = DEFAULT_SETTINGS['standard_materials']
-            needs_save = True
-            
+        # 3. Load Standard Materials
+        mats_db = db.query(StandardMaterial).all()
+        config['standard_materials'] = [{
+            "name": m.name, "cost": m.cost, "unit": m.unit,
+            "is_assembly": m.is_assembly, "consumables_cost": m.consumables_cost,
+            "labor_role": m.labor_role, "labor_hours": m.labor_hours
+        } for m in mats_db]
+
+        # Inject defaults if database is brand new
+        needs_save = False
+        for key, val in DEFAULT_SETTINGS.items():
+            if key not in config and key != "standard_roles" and key != "standard_materials":
+                config[key] = val
+                needs_save = True
+                
         if needs_save:
             save_settings(config)
-            
-        return config
 
-def save_settings(settings):
-    os.makedirs(DATA_DIR, exist_ok=True) # <-- ADD THIS LINE
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(settings, f, indent=4)
+    return config
+
+def save_settings(settings_dict):
+    """Saves the entire config dictionary back to the appropriate SQL tables."""
+    for db in get_session():
+        # 1. Save core key/values
+        for key, val in settings_dict.items():
+            if key in ["standard_roles", "standard_materials"]: continue
+            
+            existing = db.query(AppSetting).filter_by(key=key).first()
+            if existing:
+                existing.value = json.dumps(val)
+            else:
+                db.add(AppSetting(key=key, value=json.dumps(val)))
+                
+        # 2. Sync Standard Roles
+        if "standard_roles" in settings_dict:
+            db.query(StandardRole).delete()
+            for r in settings_dict["standard_roles"]:
+                db.add(StandardRole(name=r.get("name"), rate=r.get("rate", 0.0)))
+                
+        # 3. Sync Standard Materials
+        if "standard_materials" in settings_dict:
+            db.query(StandardMaterial).delete()
+            for m in settings_dict["standard_materials"]:
+                db.add(StandardMaterial(
+                    name=m.get("name"), cost=m.get("cost", 0.0), unit=m.get("unit", "each"),
+                    is_assembly=m.get("is_assembly", False), consumables_cost=m.get("consumables_cost", 0.0),
+                    labor_role=m.get("labor_role"), labor_hours=m.get("labor_hours", 0.0)
+                ))
+        db.commit()
+
+# --- THE REST OF YOUR SETTINGS UI FUNCTIONS GO BELOW HERE EXACTLY AS THEY WERE ---
+# (manage_standard_roles_ui, manage_standard_materials_ui, run_first_time_setup, settings_menu_ui)
         
 def manage_standard_roles_ui():
     """UI for viewing, adding, editing, and deleting standard roles."""
