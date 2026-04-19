@@ -2,7 +2,7 @@
 import json
 from datetime import datetime
 import settings
-from database import Project, ProjectItem, get_session
+from database import Project, ProjectItem, Variation, get_session
 
 def get_all_history():
     """Fetches all projects from the database and formats them for the CLI."""
@@ -100,6 +100,80 @@ def overwrite_db(history_list):
     """Legacy wrapper for batch updates (used by po_generator.py)."""
     for proj in history_list:
         update_project(None, proj)
+        
+def get_variations_by_project(internal_id):
+    """Fetches all variations for a given project."""
+    variations = []
+    for db in get_session():
+        vars = db.query(Variation).filter(
+            Variation.project_id == internal_id
+        ).all()
+        for v in vars:
+            variations.append({
+                "id": v.id,
+                "project_id": v.project_id,
+                "reference": v.reference,
+                "status": v.status,
+                "raised_by": v.raised_by,
+                "raised_date": v.raised_date,
+                "accepted_date": v.accepted_date,
+                "accepted_by": v.accepted_by,
+                "scope_description": v.scope_description,
+                "reason": v.reason,
+                "cost_impact": v.cost_impact,
+                "programme_impact": v.programme_impact,
+                "letter_sent": v.letter_sent,
+                "letter_sent_date": v.letter_sent_date
+            })
+    return variations
+
+def save_variation(project_id, raised_by, scope, reason, cost_impact, programme_impact):
+    """Creates a new variation in Draft status."""
+    from datetime import datetime
+    now = datetime.now().strftime("%d-%m-%Y %H:%M")
+    
+    for db in get_session():
+        # Auto-generate the reference number (V1, V2, V3...)
+        existing_count = db.query(Variation).filter(
+            Variation.project_id == project_id
+        ).count()
+        reference = f"V{existing_count + 1}"
+        
+        new_var = Variation(
+            project_id=project_id,
+            reference=reference,
+            status="Draft",
+            raised_by=raised_by,
+            raised_date=now,
+            scope_description=scope,
+            reason=reason,
+            cost_impact=cost_impact,
+            programme_impact=programme_impact,
+            letter_sent=False
+        )
+        db.add(new_var)
+        db.commit()
+        return reference  # Return so the UI can confirm "V3 created"
+
+def update_variation_status(variation_id, new_status, actioned_by):
+    """Updates a variation status and records who actioned it and when."""
+    from datetime import datetime
+    now = datetime.now().strftime("%d-%m-%Y %H:%M")
+    
+    for db in get_session():
+        var = db.query(Variation).filter(Variation.id == variation_id).first()
+        if not var:
+            return False, "Variation not found."
+        
+        var.status = new_status
+        
+        # If accepting, record who accepted and when
+        if new_status == "Accepted":
+            var.accepted_by = actioned_by
+            var.accepted_date = now
+            
+        db.commit()
+        return True, f"{var.reference} updated to {new_status}."
 
 def save_to_db(name, scope, client, target_date, labor, materials, total_ex, gst, total_inc):
     """Creates a new estimate natively via SQLAlchemy."""

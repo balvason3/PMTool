@@ -91,6 +91,23 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role_id = Column(Integer, ForeignKey('roles.id'))
     role = relationship("Role")
+    
+class Variation(Base):
+    __tablename__ = 'variations'
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.internal_id'))
+    reference = Column(String)  # V1, V2, V3...
+    status = Column(String)     # Draft/Proposed/Accepted/Rejected/Negotiating/Claimed
+    raised_by = Column(String)  # current_user at time of creation
+    raised_date = Column(String)
+    accepted_date = Column(String)
+    accepted_by = Column(String)
+    scope_description = Column(Text)
+    reason = Column(String)     # Client Request/Latent Condition/Design Change
+    cost_impact = Column(Float)
+    programme_impact = Column(String)
+    letter_sent = Column(Boolean, default=False)
+    letter_sent_date = Column(String)
 
 # Initialize
 Base.metadata.create_all(engine)

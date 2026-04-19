@@ -14,6 +14,7 @@ import os
 import estimate
 import auth
 import getpass
+import variation
 
 # --- GLOBAL SESSION STATE ---
 current_user = None
@@ -139,7 +140,7 @@ def project_submenu(selected, idx):
         elif is_estimate:
             print("1. Change Status (e.g., Accept Quote) | 2. Back | 3. Edit Estimate Labor | 4. Edit Estimate Materials")
         else:
-            print("1. Change Status | 2. Back | 3. Log Actual Labor | 4. Log Material Costs | 5. Add Note")
+            print("1. Change Status | 2. Back | 3. Log Actual Labor | 4. Log Material Costs | 5. Add Note | 6. Variation")
         
         action = input("Choice: ")
         
@@ -159,6 +160,7 @@ def project_submenu(selected, idx):
             elif action == '3': labour.log_hours_ui(selected, idx)
             elif action == '4': materials.log_materials_ui(selected, idx)
             elif action == '5': notes.add_note_ui(selected, idx)
+            elif action == '6': variation.variations_menu(selected, current_user)
 
 def first_boot_setup():
     """Forces the creation of the Master Admin account on a fresh database."""
@@ -243,23 +245,19 @@ def main_menu():
 def startup_check():
     global current_user, current_role
     
-    # 1. Config Check (Legacy setup)
-    if not os.path.exists(settings.CONFIG_FILE):
+    # 1. Security Engine Initialization
+    auth.initialize_roles()
+    
+    if auth.check_first_boot():
         print("\n" + "*"*60)
         print("   WELCOME TO BEDROCK - PROJECT MANAGEMENT TOOL   ")
         print("*"*60)
         demo = input("\nWould you like to view a quick tutorial? (Y/N): ").strip().upper()
         if demo == 'Y':
             tutorial.run_demo()
-        settings.run_first_time_setup()
-        
-    # 2. Security Engine Initialization
-    auth.initialize_roles()
-    
-    if auth.check_first_boot():
         first_boot_setup()
         
-    # 3. Present the Login Barrier
+    # 2. Present the Login Barrier
     current_user, current_role = login_screen()
 
 if __name__ == "__main__":
