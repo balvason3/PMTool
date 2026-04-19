@@ -3,42 +3,24 @@ import storage
 import settings
 import supplier
 import engine
+import utils
 import po_generator
 
 
 def assign_supplier_and_tag(mats, index, config):
     """Tags an item as Ready to Order and assigns a supplier."""
     suppliers = supplier.load_suppliers() 
-    
-    print("\n--- SELECT SUPPLIER ---")
-    if not suppliers:
-        print(" [*] Database empty. You can type a new supplier name to add one.")
-        
-    for i, sup in enumerate(suppliers):
-         print(f"{i+1}. {sup['name']}") 
-    print("0. Leave as TBA")
-    
-    # Changed the prompt so it's clear you can type a name
-    sup_choice = input("\nSelect Supplier # OR type a new Supplier Name: ").strip()
-    supplier_name = "TBA"
-    
-    if sup_choice == '0':
-        pass # Stays as TBA
-    elif sup_choice.isdigit() and 0 < int(sup_choice) <= len(suppliers):
-        # User entered a valid number
-        supplier_name = suppliers[int(sup_choice)-1]['name']
-    elif sup_choice and not sup_choice.isdigit():
-        # User entered a text string (a new name!)
-        supplier_name = supplier.add_supplier_inline(sup_choice)
-    else:
-        print("!! Invalid entry. Defaulting to TBA.")
+    supplier_name = utils.select_supplier_from_list(suppliers)
         
     mats[index]['supplier'] = supplier_name
     mats[index]['procurement_status'] = 'Ready to Order'
     print(f">> Tagged as 'Ready to Order' with supplier: {supplier_name}")
 
-def project_procurement_dashboard(selected_project, index, config):
+def project_procurement_dashboard(selected_project, index, config=None):
     """Project-specific materials tracking and tagging."""
+    if config is None:
+        config = settings.load_settings()
+    
     while True:
         print(f"\n--- PROCUREMENT: {selected_project['Project']} ---")
         mats = selected_project.get('Materials', [])
@@ -94,7 +76,7 @@ def project_procurement_dashboard(selected_project, index, config):
                     "markup_percent": config.get('markup_rate', 0.15) * 100
                 })
                 
-                # --- CRITICAL FIX: Recalculate the project totals ---
+                # Recalculate the project totals
                 labor = selected_project.get('Labor', [])
                 base = engine.calculate_totals(labor, mats)
                 tax = engine.calculate_gst(base['total_ex'])
@@ -102,15 +84,17 @@ def project_procurement_dashboard(selected_project, index, config):
                 selected_project['Total_Ex_GST'] = base['total_ex']
                 selected_project['GST'] = tax['gst_value']
                 selected_project['Total_Inc_GST'] = tax['total_inc_gst']
-                # ----------------------------------------------------
                 
                 storage.update_project(index, selected_project)
                 print(">> Extra material added and budget recalculated.")
             except ValueError:
                 print("!! Invalid cost.")
 
-def select_active_project_ui(config):
+def select_active_project_ui(config=None):
     """Helper to pick a project for procurement."""
+    if config is None:
+        config = settings.load_settings()
+    
     while True:
         logs = storage.get_all_history()
         active_projects = [(i, p) for i, p in enumerate(logs) if p.get('Status') == 'Active']

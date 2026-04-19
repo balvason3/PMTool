@@ -1,10 +1,14 @@
 # --- BEDROCK: GLOBAL SETTINGS (ORM) ---
 import json
-from database import AppSetting, StandardRole, StandardMaterial, get_session
+from database import AppSetting, StandardRole, StandardMaterial, get_db_session
 
 # We keep CONFIG_FILE defined just to satisfy the startup_check in main.py temporarily 
 # until we fully delete it.
-CONFIG_FILE = "data/config.json" 
+CONFIG_FILE = "data/config.json"
+
+# CACHE: Stores loaded settings in memory to avoid repeated DB queries
+_settings_cache = None
+_cache_initialized = False
 
 DEFAULT_SETTINGS = {
     "gst_rate": 0.10,
@@ -22,10 +26,16 @@ DEFAULT_SETTINGS = {
     }
 }
 
-def load_settings():
-    """Loads settings from SQL and returns the expected dictionary."""
+def load_settings(use_cache=True):
+    """Loads settings from SQL and returns the expected dictionary. Uses cache by default."""
+    global _settings_cache, _cache_initialized
+    
+    # Return cached settings if available and cache is enabled
+    if use_cache and _cache_initialized and _settings_cache is not None:
+        return _settings_cache.copy()
+    
     config = {}
-    for db in get_session():
+    with get_db_session() as db:
         # 1. Load basic key-value settings
         settings_db = db.query(AppSetting).all()
         for setting in settings_db:
@@ -53,11 +63,16 @@ def load_settings():
         if needs_save:
             save_settings(config)
 
-    return config
+    # Cache the loaded settings
+    _settings_cache = config
+    _cache_initialized = True
+    return config.copy()
 
 def save_settings(settings_dict):
-    """Saves the entire config dictionary back to the appropriate SQL tables."""
-    for db in get_session():
+    """Saves the entire config dictionary back to the appropriate SQL tables and invalidates cache."""
+    global _settings_cache, _cache_initialized
+    
+    with get_db_session() as db:
         # 1. Save core key/values
         for key, val in settings_dict.items():
             if key in ["standard_roles", "standard_materials"]: continue
@@ -84,6 +99,17 @@ def save_settings(settings_dict):
                     labor_role=m.get("labor_role"), labor_hours=m.get("labor_hours", 0.0)
                 ))
         db.commit()
+    
+    # Invalidate cache so next load() will refresh
+    _settings_cache = None
+    _cache_initialized = False
+
+def refresh_settings_cache():
+    """Manually refresh the settings cache from database."""
+    global _settings_cache, _cache_initialized
+    _settings_cache = None
+    _cache_initialized = False
+    return load_settings()
 
 # --- THE REST OF YOUR SETTINGS UI FUNCTIONS GO BELOW HERE EXACTLY AS THEY WERE ---
 # (manage_standard_roles_ui, manage_standard_materials_ui, run_first_time_setup, settings_menu_ui)

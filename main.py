@@ -9,6 +9,7 @@ import notes
 import settings
 import procurement
 import po_generator
+import estimate_generator
 import tutorial
 import os
 import estimate
@@ -56,7 +57,7 @@ def view_history_menu(filter_status=None):
         print("-" * 85)
 
         if is_estimating:
-            choice = input("Enter ID, 'N' for New Estimate, 'S' for Search, 'F' to Filter, or '0' to exit: ").strip().upper()
+            choice = input("Enter ID, 'N' for New Estimate, 'G' for Generate PDF, 'S' for Search, 'F' to Filter, or '0' to exit: ").strip().upper()
         else:
             choice = input("Enter ID, 'S' for Search, 'F' to Filter, or '0' to exit: ").strip().upper()
         
@@ -64,6 +65,8 @@ def view_history_menu(filter_status=None):
             break
         elif choice == 'N' and is_estimating:
             estimate.create_estimate()
+        elif choice == 'G' and is_estimating:
+            estimate_generator.generate_estimate_pdf_ui()
         elif choice == 'F':
             print("\n--- FILTER BY STATUS ---")
             print("1. All Live (Excludes Archived)")
@@ -118,12 +121,15 @@ def view_history_menu(filter_status=None):
                     break
             
             if selected:
-                project_submenu(selected, idx)
+                project_submenu(selected, idx, config)
             else:
                 print("!! Job/Quote ID not found.")
 
-def project_submenu(selected, idx):
+def project_submenu(selected, idx, config=None):
     """The detailed view for an individual project or estimate."""
+    if config is None:
+        config = settings.load_settings()
+    
     while True:
         logs = storage.get_all_history()
         selected = logs[idx]
@@ -138,7 +144,7 @@ def project_submenu(selected, idx):
             print("\n*** ARCHIVED (READ-ONLY) ***")
             print("1. Restore (Change Status) | 2. Back")
         elif is_estimate:
-            print("1. Change Status (e.g., Accept Quote) | 2. Back | 3. Edit Estimate Labor | 4. Edit Estimate Materials")
+            print("1. Change Status (e.g., Accept Quote) | 2. Back | 3. Edit Estimate Labor | 4. Edit Estimate Materials | 5. Generate PDF")
         else:
             print("1. Change Status | 2. Back | 3. Log Actual Labor | 4. Log Material Costs | 5. Add Note | 6. Variation")
         
@@ -151,14 +157,15 @@ def project_submenu(selected, idx):
         elif is_estimate:
             if action == '1': status.change_status_ui(selected, idx)
             elif action == '2': break
-            elif action == '3': labour.log_hours_ui(selected, idx)
-            elif action == '4': materials.log_materials_ui(selected, idx)
+            elif action == '3': labour.log_hours_ui(selected, idx, config)
+            elif action == '4': materials.log_materials_ui(selected, idx, config)
+            elif action == '5': estimate_generator.generate_estimate_pdf_ui()
                 
         else: # Active Project
             if action == '1': status.change_status_ui(selected, idx)
             elif action == '2': break
-            elif action == '3': labour.log_hours_ui(selected, idx)
-            elif action == '4': materials.log_materials_ui(selected, idx)
+            elif action == '3': labour.log_hours_ui(selected, idx, config)
+            elif action == '4': materials.log_materials_ui(selected, idx, config)
             elif action == '5': notes.add_note_ui(selected, idx)
             elif action == '6': variation.variations_menu(selected, current_user)
 

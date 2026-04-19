@@ -1,46 +1,19 @@
 import storage
 import engine
 import settings
+import utils
 
-def select_material_ui(config):
-    """Displays the standard materials and returns the selected dictionary."""
-    mats = config.get('standard_materials', [])
-    print("\n--- SELECT MATERIAL ---")
-    for i, m in enumerate(mats):
-        tag = "[Assembly]" if m.get('is_assembly') else "[Item]"
-        print(f"{i+1}. {tag} {m['name']} (${m.get('cost', 0.0):.2f})")
-    print("C. Custom Material")
-    print("0. Done / Cancel")
+def get_material_inputs(labor_list, config=None):
+    """UPDATED: Now takes labor_list so assemblies can inject hours. Takes optional config."""
+    if config is None:
+        config = settings.load_settings()
     
-    while True:
-        choice = input("Select #, 'C' for Custom, or '0': ").strip().upper()
-        
-        if choice == '0':
-            return None
-        elif choice == 'C':
-            custom = input("Enter Custom Material Name: ").strip().title()
-            if custom: return {"name": custom, "cost": 0.0, "is_assembly": False}
-        elif choice.isdigit() and 0 < int(choice) <= len(mats):
-            return mats[int(choice)-1]
-            
-        print("!! Invalid choice. Please try again.")
-
-def get_labor_rate(config, role_name):
-    """Helper to find the standard rate for a role."""
-    for r in config.get('standard_roles', []):
-        if r['name'].lower() == role_name.lower():
-            return r.get('rate', 0.0)
-    return 0.0
-
-def get_material_inputs(labor_list):
-    """UPDATED: Now takes labor_list so assemblies can inject hours."""
-    config = settings.load_settings()
     default_markup = config['markup_rate'] * 100
     items = []
     
     print("\n--- MATERIALS BREAKDOWN ---")
     while True:
-        mat_data = select_material_ui(config)
+        mat_data = utils.select_material_from_config(config)
         if not mat_data: 
             break
             
@@ -80,7 +53,7 @@ def get_material_inputs(labor_list):
                     # 2. Inject Labor into the labor_list!
                     role = mat_data.get('labor_role', 'General Labor')
                     hrs = qty * mat_data.get('labor_hours', 0.0)
-                    rate = get_labor_rate(config, role)
+                    rate = _get_labor_rate(config, role)
                     
                     labor_list.append({
                         "role": f"{role} (Assembly)", 
@@ -96,7 +69,14 @@ def get_material_inputs(labor_list):
             
     return items
 
-def log_materials_ui(selected_project, index):
+def _get_labor_rate(config, role_name):
+    """Helper to find the standard rate for a role."""
+    for r in config.get('standard_roles', []):
+        if r['name'].lower() == role_name.lower():
+            return r.get('rate', 0.0)
+    return 0.0
+
+def log_materials_ui(selected_project, index, config=None):
     # Keeping this simple for now: Standard Variation Logging
     # We can upgrade this to handle variation assemblies later!
     config = settings.load_settings()
@@ -150,3 +130,28 @@ def log_materials_ui(selected_project, index):
                     print(">> Material Cost Logged Successfully.")
                 except ValueError:
                     print("!! Invalid number.")
+
+def get_material_single_item(config=None):
+    """Get a single material item for variations or ad-hoc entries."""
+    if config is None:
+        config = settings.load_settings()
+    
+    mat_data = utils.select_material_from_config(config)
+    if not mat_data:
+        return None
+    
+    mat_name = mat_data['name']
+    unit = mat_data.get('unit', 'each')
+    
+    try:
+        # Logic for custom items
+        if mat_data['cost'] == 0.0:
+            cost = float(input(f"Cost for {mat_name} ($): "))
+            return {"name": mat_name, "quantity": 1, "unit_cost": cost}
+        else:
+            qty = float(input(f"Quantity ({unit}) for {mat_name}: "))
+            unit_cost = mat_data['cost']
+            return {"name": mat_name, "quantity": qty, "unit_cost": unit_cost}
+    except ValueError:
+        print("!! Invalid input.")
+        return None

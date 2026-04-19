@@ -1,7 +1,8 @@
 # --- BEDROCK: ORM DATABASE MODULE ---
 import os
 import json
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Text, event, Boolean
+from contextlib import contextmanager
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Text, event, Boolean, func
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 DATA_DIR = 'data'
@@ -24,14 +25,16 @@ Base = declarative_base()
 class Project(Base):
     __tablename__ = 'projects'
     internal_id = Column(Integer, primary_key=True, autoincrement=True)
-    Project_ID = Column(String, unique=True, nullable=True)
-    Quote_Number = Column(String, unique=True, nullable=True)
-    Status = Column(String, default='Draft')
+    Project_ID = Column(String, unique=True, nullable=True, index=True)
+    Quote_Number = Column(String, unique=True, nullable=True, index=True)
+    Status = Column(String, default='Draft', index=True)
     Timestamp = Column(String)
     Project_Name = Column("Project", String)
     Client = Column(String)
     Target_Date = Column(String)
     Scope = Column(Text)
+    Method = Column(Text, nullable=True)
+    Version = Column(String, default="1.0")
     Total_Ex_GST = Column(Float, default=0.0)
     GST = Column(Float, default=0.0)
     Total_Inc_GST = Column(Float, default=0.0)
@@ -40,8 +43,8 @@ class Project(Base):
 class ProjectItem(Base):
     __tablename__ = 'project_items'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    project_id = Column(Integer, ForeignKey('projects.internal_id', ondelete="CASCADE"))
-    item_type = Column(String) 
+    project_id = Column(Integer, ForeignKey('projects.internal_id', ondelete="CASCADE"), index=True)
+    item_type = Column(String, index=True) 
     item_data = Column(Text)   
     project = relationship("Project", back_populates="items")
 
@@ -108,12 +111,31 @@ class Variation(Base):
     programme_impact = Column(String)
     letter_sent = Column(Boolean, default=False)
     letter_sent_date = Column(String)
+    items = relationship("VariationItem", back_populates="variation", cascade="all, delete-orphan")
+
+class VariationItem(Base):
+    __tablename__ = 'variation_items'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    variation_id = Column(Integer, ForeignKey('variations.id', ondelete="CASCADE"), index=True)
+    item_type = Column(String, index=True)  # 'Labor' or 'Material'
+    item_data = Column(Text)   # JSON string
+    variation = relationship("Variation", back_populates="items")
 
 # Initialize
 Base.metadata.create_all(engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_session():
+    """Generator-based session manager. Usage: for db in get_session(): ..."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@contextmanager
+def get_db_session():
+    """Context manager for cleaner session handling. Usage: with get_db_session() as db: ..."""
     db = SessionLocal()
     try:
         yield db

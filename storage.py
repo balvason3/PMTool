@@ -2,15 +2,15 @@
 import json
 from datetime import datetime
 import settings
-from database import Project, ProjectItem, Variation, get_session
+from sqlalchemy import func
+from database import Project, ProjectItem, Variation, VariationItem, get_session, get_db_session
 
 def get_all_history():
     """Fetches all projects from the database and formats them for the CLI."""
     history = []
     
-    # We use the session generator from database.py
-    for db in get_session():
-        # Query all projects
+    with get_db_session() as db:
+        # Query all projects in one session
         projects = db.query(Project).all()
         
         for p in projects:
@@ -25,6 +25,8 @@ def get_all_history():
                 "Client": p.Client,
                 "Target_Date": p.Target_Date,
                 "Scope": p.Scope,
+                "Method": p.Method,
+                "Version": p.Version,
                 "Total_Ex_GST": p.Total_Ex_GST,
                 "GST": p.GST,
                 "Total_Inc_GST": p.Total_Inc_GST,
@@ -48,51 +50,46 @@ def get_all_history():
     return history
 
 def generate_next_quote_id():
-    """Generates the next sequential Quote Number (e.g., QT-1000)."""
+    """Generates the next sequential Quote Number (e.g., QT-1000) using SQL MAX()."""
     config = settings.load_settings()
     prefix = config.get('quote_prefix', 'QT-')
     start_number = config.get('quote_start', 1000)
     
-    highest = start_number - 1
-    
-    for db in get_session():
-        # Fetch only quote numbers that start with our prefix
-        quotes = db.query(Project.Quote_Number).filter(
+    with get_db_session() as db:
+        # Use SQL MAX() to find the highest quote number efficiently
+        result = db.query(func.max(Project.Quote_Number)).filter(
             Project.Quote_Number.like(f"{prefix}%")
-        ).all()
+        ).scalar()
         
-        for (qid,) in quotes:
-            if qid:
-                try:
-                    num = int(qid.replace(prefix, ""))
-                    if num > highest:
-                        highest = num
-                except ValueError:
-                    continue
+        highest = start_number - 1
+        if result:
+            try:
+                num = int(result.replace(prefix, ""))
+                highest = num
+            except (ValueError, AttributeError):
+                pass
                     
     return f"{prefix}{highest + 1}"
 
 def generate_next_id():
-    """Generates the next sequential Job Number (e.g., JN-10000)."""
+    """Generates the next sequential Job Number (e.g., JN-10000) using SQL MAX()."""
     config = settings.load_settings()
     id_prefix = config.get('id_prefix', 'JN-')
     start_number = config.get('start_number', 10000)
     
-    highest = start_number - 1
-    
-    for db in get_session():
-        jobs = db.query(Project.Project_ID).filter(
+    with get_db_session() as db:
+        # Use SQL MAX() to find the highest job ID efficiently
+        result = db.query(func.max(Project.Project_ID)).filter(
             Project.Project_ID.like(f"{id_prefix}%")
-        ).all()
+        ).scalar()
         
-        for (pid,) in jobs:
-            if pid:
-                try:
-                    num = int(pid.replace(id_prefix, ""))
-                    if num > highest:
-                        highest = num
-                except ValueError:
-                    continue
+        highest = start_number - 1
+        if result:
+            try:
+                num = int(result.replace(id_prefix, ""))
+                highest = num
+            except (ValueError, AttributeError):
+                pass
             
     return f"{id_prefix}{highest + 1}"
 
@@ -102,13 +99,23 @@ def overwrite_db(history_list):
         update_project(None, proj)
         
 def get_variations_by_project(internal_id):
-    """Fetches all variations for a given project."""
+    """Fetches all variations for a given project including their items."""
     variations = []
-    for db in get_session():
+    with get_db_session() as db:
         vars = db.query(Variation).filter(
             Variation.project_id == internal_id
         ).all()
         for v in vars:
+            # Fetch variation items
+            labor_items = []
+            material_items = []
+            for item in v.items:
+                parsed_data = json.loads(item.item_data)
+                if item.item_type == 'Labor':
+                    labor_items.append(parsed_data)
+                elif item.item_type == 'Material':
+                    material_items.append(parsed_data)
+            
             variations.append({
                 "id": v.id,
                 "project_id": v.project_id,
@@ -123,16 +130,22 @@ def get_variations_by_project(internal_id):
                 "cost_impact": v.cost_impact,
                 "programme_impact": v.programme_impact,
                 "letter_sent": v.letter_sent,
-                "letter_sent_date": v.letter_sent_date
+                "letter_sent_date": v.letter_sent_date,
+                "Labor": labor_items,
+                "Materials": material_items
             })
     return variations
 
-def save_variation(project_id, raised_by, scope, reason, cost_impact, programme_impact):
-    """Creates a new variation in Draft status."""
-    from datetime import datetime
+def save_variation(project_id, raised_by, scope, reason, cost_impact, programme_impact, labor=None, materials=None):
+    """Creates a new variation in Draft status with optional labour and materials breakdown."""
     now = datetime.now().strftime("%d-%m-%Y %H:%M")
     
-    for db in get_session():
+    if labor is None:
+        labor = []
+    if materials is None:
+        materials = []
+    
+    with get_db_session() as db:
         # Auto-generate the reference number (V1, V2, V3...)
         existing_count = db.query(Variation).filter(
             Variation.project_id == project_id
@@ -152,15 +165,22 @@ def save_variation(project_id, raised_by, scope, reason, cost_impact, programme_
             letter_sent=False
         )
         db.add(new_var)
+        db.flush()  # Generate the ID without committing
+        
+        # Attach labour and material items
+        for l_item in labor:
+            db.add(VariationItem(variation_id=new_var.id, item_type='Labor', item_data=json.dumps(l_item)))
+        for m_item in materials:
+            db.add(VariationItem(variation_id=new_var.id, item_type='Material', item_data=json.dumps(m_item)))
+        
         db.commit()
-        return reference  # Return so the UI can confirm "V3 created"
+        return reference
 
 def update_variation_status(variation_id, new_status, actioned_by):
     """Updates a variation status and records who actioned it and when."""
-    from datetime import datetime
     now = datetime.now().strftime("%d-%m-%Y %H:%M")
     
-    for db in get_session():
+    with get_db_session() as db:
         var = db.query(Variation).filter(Variation.id == variation_id).first()
         if not var:
             return False, "Variation not found."
@@ -175,12 +195,12 @@ def update_variation_status(variation_id, new_status, actioned_by):
         db.commit()
         return True, f"{var.reference} updated to {new_status}."
 
-def save_to_db(name, scope, client, target_date, labor, materials, total_ex, gst, total_inc):
+def save_to_db(name, scope, method, client, target_date, labor, materials, total_ex, gst, total_inc):
     """Creates a new estimate natively via SQLAlchemy."""
     quote_id = generate_next_quote_id()    
     now = datetime.now().strftime("%d-%m-%Y %H:%M")
     
-    for db in get_session():
+    with get_db_session() as db:
         new_project = Project(
             Quote_Number=quote_id,
             Status="Draft",
@@ -189,6 +209,8 @@ def save_to_db(name, scope, client, target_date, labor, materials, total_ex, gst
             Client=client,
             Target_Date=target_date,
             Scope=scope,
+            Method=method,
+            Version="1.0",
             Total_Ex_GST=total_ex,
             GST=gst,
             Total_Inc_GST=total_inc
@@ -213,7 +235,7 @@ def update_project(index, updated_data):
         print("!! Critical Error: Cannot update project without internal_id.")
         return
 
-    for db in get_session():
+    with get_db_session() as db:
         project = db.query(Project).filter(Project.internal_id == internal_id).first()
         
         if not project:
@@ -228,6 +250,8 @@ def update_project(index, updated_data):
         project.Client = updated_data.get('Client', '')
         project.Target_Date = updated_data.get('Target_Date', '')
         project.Scope = updated_data.get('Scope', '')
+        project.Method = updated_data.get('Method', '')
+        project.Version = updated_data.get('Version', '1.0')
         project.Total_Ex_GST = updated_data.get('Total_Ex_GST', 0.0)
         project.GST = updated_data.get('GST', 0.0)
         project.Total_Inc_GST = updated_data.get('Total_Inc_GST', 0.0)

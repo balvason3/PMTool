@@ -1,38 +1,19 @@
 import storage
 import engine
 import settings
+import utils
 
-def select_role_ui(config):
-    """Displays the standard roles and returns the selected dictionary."""
-    roles = config.get('standard_roles', [])
-    print("\n--- SELECT ROLE ---")
-    for i, r in enumerate(roles):
-        print(f"{i+1}. {r['name']} (${r.get('rate', 0.0):.2f}/hr)")
-    print("C. Custom Role")
-    print("0. Done / Cancel")
+def get_labour_inputs(config=None):
+    """Get labour inputs for a new estimate. Takes optional config to avoid reloading."""
+    if config is None:
+        config = settings.load_settings()
     
-    while True:
-        choice = input("Select #, 'C' for Custom, or '0': ").strip().upper()
-        
-        if choice == '0':
-            return None
-        elif choice == 'C':
-            custom = input("Enter Custom Role Name: ").strip().title()
-            # Custom roles have no default rate
-            if custom: return {"name": custom, "rate": 0.0}
-        elif choice.isdigit() and 0 < int(choice) <= len(roles):
-            return roles[int(choice)-1]
-            
-        print("!! Invalid choice. Please try again.")
-
-def get_labour_inputs():
-    config = settings.load_settings()
     default_markup = config['markup_rate'] * 100
     items = []
     
     print("\n--- LABOUR ESTIMATE (Baseline) ---")
     while True:
-        role_data = select_role_ui(config)
+        role_data = utils.select_role_from_config(config)
         if not role_data: 
             break 
             
@@ -57,8 +38,11 @@ def get_labour_inputs():
             print("  !! Invalid number. Please retry.")
     return items
 
-def log_hours_ui(selected_project, index):
-    config = settings.load_settings()
+def log_hours_ui(selected_project, index, config=None):
+    """Log hours for an active project. Takes optional config to avoid reloading."""
+    if config is None:
+        config = settings.load_settings()
+    
     default_markup = config['markup_rate'] * 100
     
     while True:
@@ -73,7 +57,7 @@ def log_hours_ui(selected_project, index):
             break 
             
         elif choice == 'N':
-            role_data = select_role_ui(config)
+            role_data = utils.select_role_from_config(config)
             if not role_data:
                 continue 
                 
@@ -125,3 +109,29 @@ def log_hours_ui(selected_project, index):
                     print(">> Hours Logged Successfully.")
                 except ValueError:
                     print("!! Invalid number.")
+
+def get_labour_single_item(config=None):
+    """Get a single labour item for variations or ad-hoc entries."""
+    if config is None:
+        config = settings.load_settings()
+    
+    role_data = utils.select_role_from_config(config)
+    if not role_data:
+        return None
+    
+    role_name = role_data['name']
+    default_rate = role_data.get('rate', 0.0)
+    
+    try:
+        hrs = float(input(f"Hours for {role_name}: "))
+        
+        if default_rate > 0:
+            rate_in = input(f"Hourly rate for {role_name} (Press Enter for ${default_rate:.2f}): ").strip()
+            rate = float(rate_in) if rate_in else default_rate
+        else:
+            rate = float(input(f"Hourly rate for {role_name} ($): "))
+        
+        return {"role": role_name, "hours": hrs, "rate": rate}
+    except ValueError:
+        print("!! Invalid input.")
+        return None
